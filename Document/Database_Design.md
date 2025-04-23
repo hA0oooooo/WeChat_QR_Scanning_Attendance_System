@@ -227,7 +227,7 @@ CREATE TABLE `LeaveRequest` (
   `event_id` int unsigned NOT NULL COMMENT '考勤事件ID',
   `reason` text NOT NULL COMMENT '请假内容',
   `submit_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '提交时间',
-  `approval_status` enum('待审批','已批准','已驳回') DEFAULT '待审批' COMMENT '审批状态',
+  `approval_status` enum('待审批','已批准','已驳回') NOT NULL DEFAULT '待审批' COMMENT '审批状态',
   `approver_teacher_id` char(5) DEFAULT NULL COMMENT '审批教师工号',
   `approval_timestamp` datetime DEFAULT NULL COMMENT '审批时间',
   `approver_notes` text COMMENT '审批备注',

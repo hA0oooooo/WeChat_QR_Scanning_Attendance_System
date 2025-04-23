@@ -1,0 +1,11 @@
+# Python 生成的缓存文件夹
+__pycache__/
+
+# 日志与本地配置
+*.log
+# 本地配置
+local_settings.py
+# SQLite 数据库文件
+db.sqlite3
+# SQLite 数据库的临时文件
+db.sqlite3-journal
