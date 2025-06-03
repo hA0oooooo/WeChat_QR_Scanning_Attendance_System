@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% block title %}首页 - 微信扫码考勤系统{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">欢迎使用微信扫码考勤系统</h2>
+    
+    <div class="row">
+        <!-- 考勤打卡卡片 -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-qrcode text-primary"></i> 考勤打卡
+                    </h5>
+                    <p class="card-text">点击下方按钮进行考勤打卡</p>
+                    <a href="{% url 'attendance' %}" class="btn btn-primary">
+                        <i class="fas fa-qrcode"></i> 开始打卡
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 考勤记录卡片 -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-list text-success"></i> 考勤记录
+                    </h5>
+                    <p class="card-text">查看您的考勤记录</p>
+                    <a href="{% url 'attendance_records' %}" class="btn btn-success">
+                        <i class="fas fa-list"></i> 查看记录
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        {% if user.is_staff %}
+        <!-- 考勤统计卡片 -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-chart-bar text-info"></i> 考勤统计
+                    </h5>
+                    <p class="card-text">查看考勤统计数据</p>
+                    <a href="{% url 'attendance_stats' %}" class="btn btn-info">
+                        <i class="fas fa-chart-bar"></i> 查看统计
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 今日考勤状态 -->
+    <div class="card mt-4">
+        <div class="card-body">
+            <h5 class="card-title">今日考勤状态</h5>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>打卡类型</th>
+                            <th>状态</th>
+                            <th>时间</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>上班打卡</td>
+                            <td>
+                                {% if today_attendance.check_in_status == 1 %}
+                                <span class="badge bg-success">正常</span>
+                                {% elif today_attendance.check_in_status == 2 %}
+                                <span class="badge bg-warning">迟到</span>
+                                {% else %}
+                                <span class="badge bg-secondary">未打卡</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ today_attendance.check_in_time|default:"--" }}</td>
+                        </tr>
+                        <tr>
+                            <td>下班打卡</td>
+                            <td>
+                                {% if today_attendance.check_out_status == 1 %}
+                                <span class="badge bg-success">正常</span>
+                                {% elif today_attendance.check_out_status == 2 %}
+                                <span class="badge bg-warning">早退</span>
+                                {% else %}
+                                <span class="badge bg-secondary">未打卡</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ today_attendance.check_out_time|default:"--" }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

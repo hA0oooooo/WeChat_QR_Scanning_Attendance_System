@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{% block title %}管理员仪表盘 - 微信扫码考勤系统{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- 统计卡片 -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h6 class="card-title">学生总数</h6>
+                    <p class="display-6">{{ student_count }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h6 class="card-title">教师总数</h6>
+                    <p class="display-6">{{ teacher_count }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h6 class="card-title">课程总数</h6>
+                    <p class="display-6">{{ course_count }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h6 class="card-title">院系总数</h6>
+                    <p class="display-6">{{ department_count }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 快捷操作 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">快捷操作</h5>
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'manage_students' %}" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-user-graduate"></i> 管理学生
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'manage_teachers' %}" class="btn btn-outline-success w-100">
+                                <i class="fas fa-chalkboard-teacher"></i> 管理教师
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'manage_courses' %}" class="btn btn-outline-info w-100">
+                                <i class="fas fa-book"></i> 管理课程
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'manage_departments' %}" class="btn btn-outline-warning w-100">
+                                <i class="fas fa-building"></i> 管理部门
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 系统状态 -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">系统状态</h5>
+                    <div class="list-group">
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">服务器状态</h6>
+                                <span class="badge bg-success">正常</span>
+                            </div>
+                        </div>
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">数据库状态</h6>
+                                <span class="badge bg-success">正常</span>
+                            </div>
+                        </div>
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">微信接口状态</h6>
+                                <span class="badge bg-success">正常</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">最近活动</h5>
+                    <div class="list-group">
+                        {% for activity in recent_activities %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ activity.title }}</h6>
+                                <small class="text-muted">{{ activity.time|timesince }}前</small>
+                            </div>
+                            <p class="mb-1">{{ activity.description }}</p>
+                        </div>
+                        {% empty %}
+                        <div class="list-group-item">
+                            <p class="mb-0 text-muted">暂无活动记录</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+
+{% block title %}创建考勤 - 微信扫码考勤系统{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-6">
+            <!-- 考勤设置表单 -->
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">考勤设置</h5>
+                    <form method="post" id="attendanceForm">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="course" class="form-label">课程</label>
+                            <select class="form-select" id="course" name="course" required>
+                                <option value="">请选择课程</option>
+                                {% for course in courses %}
+                                <option value="{{ course.id }}" {% if selected_course == course.id %}selected{% endif %}>
+                                    {{ course.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="date" class="form-label">考勤日期</label>
+                            <input type="date" class="form-control" id="date" name="date" 
+                                   value="{{ today|date:'Y-m-d' }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="startTime" class="form-label">开始时间</label>
+                            <input type="time" class="form-control" id="startTime" name="start_time" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="endTime" class="form-label">结束时间</label>
+                            <input type="time" class="form-control" id="endTime" name="end_time" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="lateThreshold" class="form-label">迟到阈值（分钟）</label>
+                            <input type="number" class="form-control" id="lateThreshold" name="late_threshold" 
+                                   value="15" min="0" max="60" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="earlyLeaveThreshold" class="form-label">早退阈值（分钟）</label>
+                            <input type="number" class="form-control" id="earlyLeaveThreshold" name="early_leave_threshold" 
+                                   value="15" min="0" max="60" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="remarks" class="form-label">备注</label>
+                            <textarea class="form-control" id="remarks" name="remarks" rows="3"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">创建考勤</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <!-- 考勤二维码 -->
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">考勤二维码</h5>
+                    {% if qr_code %}
+                    <div class="text-center">
+                        <img src="{{ qr_code }}" alt="考勤二维码" class="img-fluid mb-3">
+                        <p class="text-muted">请让学生扫描此二维码进行考勤</p>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-outline-primary" onclick="refreshQRCode()">
+                                刷新二维码
+                            </button>
+                            <button type="button" class="btn btn-outline-primary" onclick="downloadQRCode()">
+                                下载二维码
+                            </button>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        请先填写考勤信息并创建考勤
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 考勤状态 -->
+            {% if attendance_event %}
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h5 class="card-title">考勤状态</h5>
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6>应到人数</h6>
+                                    <p class="display-6">{{ total_students }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6>已签到人数</h6>
+                                    <p class="display-6">{{ checked_in_students }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="progress mt-3">
+                        <div class="progress-bar" role="progressbar" 
+                             style="width: {{ attendance_rate }}%"
+                             aria-valuenow="{{ attendance_rate }}" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                            {{ attendance_rate }}%
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function refreshQRCode() {
+    // 实现刷新二维码功能
+    location.reload();
+}
+
+function downloadQRCode() {
+    // 实现下载二维码功能
+    const qrImage = document.querySelector('.img-fluid');
+    if (qrImage) {
+        const link = document.createElement('a');
+        link.download = 'attendance-qr.png';
+        link.href = qrImage.src;
+        link.click();
+    }
+}
+
+// 时间选择验证
+document.getElementById('startTime').addEventListener('change', function() {
+    const endTime = document.getElementById('endTime');
+    endTime.min = this.value;
+});
+
+document.getElementById('endTime').addEventListener('change', function() {
+    const startTime = document.getElementById('startTime');
+    startTime.max = this.value;
+});
+</script>
+{% endblock %} 

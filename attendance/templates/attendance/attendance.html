@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block title %}考勤签到 - 微信扫码考勤系统{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="card-title mb-4">考勤签到</h5>
+                    
+                    {% if attendance_event %}
+                        <div class="mb-4">
+                            <h6>课程信息</h6>
+                            <p class="mb-1">{{ attendance_event.course.name }}</p>
+                            <p class="mb-1">{{ attendance_event.date|date:"Y-m-d" }}</p>
+                            <p class="mb-1">{{ attendance_event.start_time|time:"H:i" }} - {{ attendance_event.end_time|time:"H:i" }}</p>
+                        </div>
+
+                        {% if can_check_in %}
+                            <div class="mb-4">
+                                <img src="{{ qr_code }}" alt="考勤二维码" class="img-fluid mb-3" style="max-width: 200px;">
+                                <p class="text-muted">请使用微信扫描二维码进行签到</p>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-warning">
+                                当前不在考勤时间范围内
+                            </div>
+                        {% endif %}
+
+                        {% if check_in_record %}
+                            <div class="alert alert-info">
+                                <p class="mb-0">签到时间：{{ check_in_record.check_in_time|time:"H:i:s" }}</p>
+                                <p class="mb-0">签到状态：{{ check_in_record.get_status_display }}</p>
+                            </div>
+                        {% endif %}
+
+                        {% if can_check_out %}
+                            <button class="btn btn-primary" onclick="checkOut()">
+                                签退
+                            </button>
+                        {% endif %}
+                    {% else %}
+                        <div class="alert alert-info">
+                            当前没有进行中的考勤
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+function checkOut() {
+    if (confirm('确定要签退吗？')) {
+        fetch('{% url "check_out" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.message);
+            }
+        });
+    }
+}
+</script>
+{% endblock %}
+{% endblock %} 

@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block title %}我的课程 - 微信扫码考勤系统{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">我的课程</h2>
+    
+    <!-- 课程列表 -->
+    <div class="row">
+        {% for course in courses %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">{{ course.name }}</h5>
+                    <p class="card-text">
+                        <strong>课程编号：</strong>{{ course.course_id }}<br>
+                        <strong>授课教师：</strong>{{ course.teacher.username }}<br>
+                        <strong>上课时间：</strong>{{ course.schedule }}<br>
+                        <strong>上课地点：</strong>{{ course.location }}<br>
+                        <strong>学分：</strong>{{ course.credits }}
+                    </p>
+                </div>
+                <div class="card-footer">
+                    <a href="{% url 'course_detail' course.id %}" class="btn btn-primary">查看详情</a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info">
+                暂无课程信息
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- 课程表 -->
+    <div class="card mt-4">
+        <div class="card-body">
+            <h5 class="card-title">课程表</h5>
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>时间</th>
+                            <th>周一</th>
+                            <th>周二</th>
+                            <th>周三</th>
+                            <th>周四</th>
+                            <th>周五</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for time_slot in schedule %}
+                        <tr>
+                            <td>{{ time_slot.time }}</td>
+                            {% for day in time_slot.days %}
+                            <td>
+                                {% if day.course %}
+                                <div class="course-item">
+                                    <strong>{{ day.course.name }}</strong><br>
+                                    <small>{{ day.course.location }}</small>
+                                </div>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
