@@ -21,8 +21,7 @@ from .admin_views import (
     manage_teachers,
     manage_courses,
     manage_departments,
-    manage_majors,
-    manage_classes
+    manage_majors
 )
 
 # 基础视图函数
@@ -30,7 +29,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.utils import timezone
-from ..models import AttendanceRecord
+from ..models import Attendance, Student, Teacher
 
 def index(request):
     """首页视图"""
@@ -39,10 +38,18 @@ def index(request):
     
     # 获取今日考勤记录
     today = timezone.now().date()
-    today_attendance = AttendanceRecord.objects.filter(
-        user=request.user,
-        date=today
-    ).first()
+    if hasattr(request.user, 'student'):
+        today_attendance = Attendance.objects.filter(
+            enrollment__student__openid=request.user.username,
+            event__event_date=today
+        ).first()
+    elif hasattr(request.user, 'teacher'):
+        today_attendance = Attendance.objects.filter(
+            event__course__teachingassignment__teacher__teacher_id=request.user.username,
+            event__event_date=today
+        ).first()
+    else:
+        today_attendance = None
     
     context = {
         'today_attendance': today_attendance

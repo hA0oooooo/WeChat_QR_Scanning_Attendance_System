@@ -1,0 +1,254 @@
+{% extends 'base.html' %}
+
+{% block title %}课程管理 - 微信扫码考勤系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- 课程列表 -->
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-book me-2"></i>课程管理
+                </h5>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCourseModal">
+                        <i class="fas fa-plus me-2"></i>添加课程
+                    </button>
+                    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#importCoursesModal">
+                        <i class="fas fa-file-import me-2"></i>批量导入
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- 筛选器 -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <select class="form-select" id="department">
+                            <option value="">所有院系</option>
+                            {% for dept in departments %}
+                            <option value="{{ dept.id }}">{{ dept.dept_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="semester">
+                            <option value="">所有学期</option>
+                            {% for semester in semesters %}
+                            <option value="{{ semester }}">{{ semester }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <input type="text" class="form-control" id="searchInput" placeholder="搜索课程...">
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-primary w-100" id="searchBtn">
+                            <i class="fas fa-search me-2"></i>搜索
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 课程表格 -->
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>课程代码</th>
+                                <th>课程名称</th>
+                                <th>开课院系</th>
+                                <th>学期</th>
+                                <th>教师</th>
+                                <th>学生人数</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for course in courses %}
+                            <tr>
+                                <td>{{ course.course_id }}</td>
+                                <td>{{ course.course_name }}</td>
+                                <td>{{ course.dept.dept_name }}</td>
+                                <td>{{ course.semester }}</td>
+                                <td>{{ course.teacher.teacher_name }}</td>
+                                <td>{{ course.student_count }}</td>
+                                <td>
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-sm btn-primary" onclick="editCourse('{{ course.id }}')">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-info" onclick="manageStudents('{{ course.id }}')">
+                                            <i class="fas fa-users"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-danger" onclick="deleteCourse('{{ course.id }}')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center py-4">
+                                    <i class="fas fa-info-circle me-2"></i>暂无课程记录
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 分页 -->
+                <nav class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        {% if courses.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ courses.previous_page_number }}">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+
+                        {% for num in courses.paginator.page_range %}
+                        <li class="page-item {% if num == courses.number %}active{% endif %}">
+                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                        </li>
+                        {% endfor %}
+
+                        {% if courses.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ courses.next_page_number }}">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加课程模态框 -->
+<div class="modal fade" id="addCourseModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus me-2"></i>添加课程
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addCourseForm">
+                    <div class="mb-3">
+                        <label class="form-label">课程代码</label>
+                        <input type="text" class="form-control" name="course_id" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">课程名称</label>
+                        <input type="text" class="form-control" name="course_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">开课院系</label>
+                        <select class="form-select" name="department" required>
+                            <option value="">请选择院系</option>
+                            {% for dept in departments %}
+                            <option value="{{ dept.id }}">{{ dept.dept_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">授课教师</label>
+                        <select class="form-select" name="teacher" required>
+                            <option value="">请选择教师</option>
+                            {% for teacher in teachers %}
+                            <option value="{{ teacher.id }}">{{ teacher.teacher_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">学期</label>
+                        <select class="form-select" name="semester" required>
+                            <option value="">请选择学期</option>
+                            {% for semester in semesters %}
+                            <option value="{{ semester }}">{{ semester }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="submitAddCourse()">确定</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 批量导入模态框 -->
+<div class="modal fade" id="importCoursesModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-file-import me-2"></i>批量导入
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="importCoursesForm">
+                    <div class="mb-3">
+                        <label class="form-label">选择文件</label>
+                        <input type="file" class="form-control" name="file" accept=".xlsx,.xls,.csv" required>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>请下载模板文件，按照模板格式填写后上传
+                    </div>
+                    <a href="{% url 'download_course_template' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-download me-2"></i>下载模板
+                    </a>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="submitImportCourses()">确定</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+function editCourse(courseId) {
+    // 实现编辑课程功能
+}
+
+function manageStudents(courseId) {
+    // 实现管理学生功能
+}
+
+function deleteCourse(courseId) {
+    if (confirm('确定要删除该课程吗？')) {
+        // 实现删除课程功能
+    }
+}
+
+function submitAddCourse() {
+    // 实现添加课程功能
+}
+
+function submitImportCourses() {
+    // 实现批量导入功能
+}
+
+// 搜索功能
+document.getElementById('searchBtn').addEventListener('click', function() {
+    const department = document.getElementById('department').value;
+    const semester = document.getElementById('semester').value;
+    const searchText = document.getElementById('searchInput').value;
+    
+    // 实现搜索功能
+});
+</script>
+{% endblock %}
+{% endblock %} 

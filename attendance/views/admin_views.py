@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.utils import timezone
-from ..models import Student, Teacher, Course, Department, Major, Class
+from ..models import Student, Teacher, Course, Department, Major
 
 def is_admin(user):
     """检查用户是否是管理员"""
@@ -30,7 +30,7 @@ def admin_dashboard(request):
 @user_passes_test(is_admin)
 def manage_students(request):
     """管理学生信息"""
-    students = Student.objects.all().order_by('student_id')
+    students = Student.objects.all().order_by('stu_id')
     context = {
         'students': students
     }
@@ -60,7 +60,7 @@ def manage_courses(request):
 @user_passes_test(is_admin)
 def manage_departments(request):
     """管理部门信息"""
-    departments = Department.objects.all().order_by('name')
+    departments = Department.objects.all().order_by('dept_name')
     context = {
         'departments': departments
     }
@@ -70,18 +70,8 @@ def manage_departments(request):
 @user_passes_test(is_admin)
 def manage_majors(request):
     """管理专业信息"""
-    majors = Major.objects.all().order_by('name')
+    majors = Major.objects.all().order_by('major_name')
     context = {
         'majors': majors
     }
-    return render(request, 'admin/manage_majors.html', context)
-
-@login_required
-@user_passes_test(is_admin)
-def manage_classes(request):
-    """管理班级信息"""
-    classes = Class.objects.all().order_by('name')
-    context = {
-        'classes': classes
-    }
-    return render(request, 'admin/manage_classes.html', context) 
+    return render(request, 'admin/manage_majors.html', context) 

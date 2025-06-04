@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+
+{% block title %}个人信息 - 微信扫码考勤系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- 个人信息 -->
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-user me-2"></i>个人信息
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <i class="fas fa-user-circle fa-5x text-primary"></i>
+                </div>
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">工号</span>
+                            <span class="fw-bold">{{ teacher.teacher_id }}</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">姓名</span>
+                            <span class="fw-bold">{{ teacher.teacher_name }}</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">性别</span>
+                            <span class="fw-bold">{{ teacher.get_teacher_sex_display }}</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">院系</span>
+                            <span class="fw-bold">{{ teacher.dept.dept_name }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 课程列表 -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-book me-2"></i>我的课程
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>课程代码</th>
+                                <th>课程名称</th>
+                                <th>开课院系</th>
+                                <th>学期</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for course in courses %}
+                            <tr>
+                                <td>{{ course.course_id }}</td>
+                                <td>{{ course.course_name }}</td>
+                                <td>{{ course.dept.dept_name }}</td>
+                                <td>{{ course.semester }}</td>
+                                <td>
+                                    <a href="{% url 'teacher_course_detail' course.course_id %}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-eye me-1"></i>查看
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4">
+                                    <i class="fas fa-info-circle me-2"></i>暂无课程记录
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

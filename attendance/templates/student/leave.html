@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+
+{% block title %}请假 - 微信扫码考勤系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- 请假申请 -->
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-calendar-plus me-2"></i>请假申请
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="course" class="form-label">课程</label>
+                        <select class="form-select" id="course" name="course" required>
+                            <option value="">请选择课程</option>
+                            {% for enrollment in enrollments %}
+                            <option value="{{ enrollment.course.course_id }}">{{ enrollment.course.course_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="event" class="form-label">考勤日期</label>
+                        <select class="form-select" id="event" name="event" required>
+                            <option value="">请选择日期</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="reason" class="form-label">请假原因</label>
+                        <textarea class="form-control" id="reason" name="reason" rows="3" required></textarea>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane me-2"></i>提交申请
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 请假记录 -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-history me-2"></i>请假记录
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>课程</th>
+                                <th>日期</th>
+                                <th>请假原因</th>
+                                <th>提交时间</th>
+                                <th>状态</th>
+                                <th>审批备注</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for leave in leaves %}
+                            <tr>
+                                <td>{{ leave.event.course.course_name }}</td>
+                                <td>{{ leave.event.event_date }}</td>
+                                <td>{{ leave.reason }}</td>
+                                <td>{{ leave.submit_time }}</td>
+                                <td>
+                                    {% if leave.approval_status == 'pending' %}
+                                    <span class="badge bg-warning">待审批</span>
+                                    {% elif leave.approval_status == 'approved' %}
+                                    <span class="badge bg-success">已批准</span>
+                                    {% elif leave.approval_status == 'rejected' %}
+                                    <span class="badge bg-danger">已拒绝</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ leave.approver_notes|default:"-" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center py-4">
+                                    <i class="fas fa-info-circle me-2"></i>暂无请假记录
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.getElementById('course').addEventListener('change', function() {
+    const courseId = this.value;
+    const eventSelect = document.getElementById('event');
+    eventSelect.innerHTML = '<option value="">请选择日期</option>';
+    
+    if (courseId) {
+        fetch(`/api/events/?course_id=${courseId}`)
+            .then(response => response.json())
+            .then(data => {
+                data.forEach(event => {
+                    const option = document.createElement('option');
+                    option.value = event.id;
+                    option.textContent = event.date;
+                    eventSelect.appendChild(option);
+                });
+            });
+    }
+});
+</script>
+{% endblock %}
+{% endblock %} 

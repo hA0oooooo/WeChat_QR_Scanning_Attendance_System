@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ course.course_name }} - 微信扫码考勤系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- 课程信息 -->
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-book me-2"></i>课程信息
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">课程代码</span>
+                            <span class="fw-bold">{{ course.course_id }}</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">课程名称</span>
+                            <span class="fw-bold">{{ course.course_name }}</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">开课院系</span>
+                            <span class="fw-bold">{{ course.dept.dept_name }}</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">学期</span>
+                            <span class="fw-bold">{{ course.semester }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 考勤操作 -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-qrcode me-2"></i>考勤操作
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{% url 'teacher_start_attendance' course.course_id %}">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="event_date" class="form-label">考勤日期</label>
+                        <input type="date" class="form-control" id="event_date" name="event_date" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="scan_start_time" class="form-label">开始时间</label>
+                        <input type="time" class="form-control" id="scan_start_time" name="scan_start_time" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="scan_end_time" class="form-label">结束时间</label>
+                        <input type="time" class="form-control" id="scan_end_time" name="scan_end_time" required>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-play me-2"></i>开始考勤
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 考勤记录 -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-history me-2"></i>考勤记录
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>日期</th>
+                                <th>开始时间</th>
+                                <th>结束时间</th>
+                                <th>出勤人数</th>
+                                <th>缺勤人数</th>
+                                <th>迟到人数</th>
+                                <th>请假人数</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for event in events %}
+                            <tr>
+                                <td>{{ event.event_date }}</td>
+                                <td>{{ event.scan_start_time }}</td>
+                                <td>{{ event.scan_end_time }}</td>
+                                <td>{{ event.present_count }}</td>
+                                <td>{{ event.absent_count }}</td>
+                                <td>{{ event.late_count }}</td>
+                                <td>{{ event.leave_count }}</td>
+                                <td>
+                                    <a href="{% url 'teacher_event_detail' event.id %}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-eye me-1"></i>查看
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="8" class="text-center py-4">
+                                    <i class="fas fa-info-circle me-2"></i>暂无考勤记录
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

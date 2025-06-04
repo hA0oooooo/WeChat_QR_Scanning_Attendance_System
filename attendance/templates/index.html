@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block title %}首页 - 微信扫码考勤系统{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <h1 class="display-4 mb-4">欢迎使用微信扫码考勤系统</h1>
+                <p class="lead mb-4">使用微信扫码，轻松完成考勤</p>
+                <div class="row justify-content-center">
+                    <div class="col-md-4">
+                        <div class="card mb-4">
+                            <div class="card-body">
+                                <i class="fas fa-qrcode fa-3x mb-3 text-primary"></i>
+                                <h5>快速扫码</h5>
+                                <p class="text-muted">使用微信扫描二维码即可完成考勤</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card mb-4">
+                            <div class="card-body">
+                                <i class="fas fa-chart-line fa-3x mb-3 text-success"></i>
+                                <h5>实时统计</h5>
+                                <p class="text-muted">考勤数据实时统计，一目了然</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-grid gap-2 col-md-6 mx-auto">
+                    <a href="{% url 'login' %}" class="btn btn-primary btn-lg">
+                        <i class="fab fa-weixin me-2"></i>微信登录
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

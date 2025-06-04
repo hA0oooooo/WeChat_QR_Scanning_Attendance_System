@@ -2,21 +2,21 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.utils import timezone
-from ..models import AttendanceRecord, LeaveRequest
+from ..models import Attendance, LeaveRequest, Enrollment
 
 @login_required
 def student_dashboard(request):
     """学生仪表盘"""
     # 获取今日考勤记录
     today = timezone.now().date()
-    today_attendance = AttendanceRecord.objects.filter(
-        user=request.user,
-        date=today
+    today_attendance = Attendance.objects.filter(
+        enrollment__student__openid=request.user.username,
+        event__event_date=today
     ).first()
     
     # 获取最近的请假记录
     recent_leave_requests = LeaveRequest.objects.filter(
-        student=request.user
+        enrollment__student__openid=request.user.username
     ).order_by('-created_at')[:5]
     
     context = {
@@ -29,9 +29,11 @@ def student_dashboard(request):
 def student_courses(request):
     """学生课程列表"""
     # 获取学生的课程列表
-    courses = request.user.student.courses.all()
+    enrollments = Enrollment.objects.filter(
+        student__openid=request.user.username
+    )
     context = {
-        'courses': courses
+        'enrollments': enrollments
     }
     return render(request, 'student/courses.html', context)
 
@@ -39,9 +41,9 @@ def student_courses(request):
 def student_attendance(request):
     """学生考勤记录"""
     # 获取学生的考勤记录
-    records = AttendanceRecord.objects.filter(
-        student=request.user
-    ).order_by('-date')
+    records = Attendance.objects.filter(
+        enrollment__student__openid=request.user.username
+    ).order_by('-event__event_date')
     
     context = {
         'records': records
@@ -61,7 +63,7 @@ def leave_request_history(request):
     """请假记录历史"""
     # 获取学生的请假记录
     leave_requests = LeaveRequest.objects.filter(
-        student=request.user
+        enrollment__student__openid=request.user.username
     ).order_by('-created_at')
     
     context = {

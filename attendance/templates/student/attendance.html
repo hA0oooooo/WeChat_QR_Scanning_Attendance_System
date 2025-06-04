@@ -1,178 +1,93 @@
-{% extends 'common/base.html' %}
+{% extends 'base.html' %}
 
-{% block title %}考勤记录 - {{ block.super }}{% endblock %}
+{% block title %}考勤 - 微信扫码考勤系统{% endblock %}
 
 {% block content %}
-<div class="container">
-    <h2 class="mb-4">考勤记录</h2>
-
-    <!-- 考勤统计卡片 -->
-    <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="card bg-primary text-white">
-                <div class="card-body">
-                    <h5 class="card-title">总出勤天数</h5>
-                    <p class="card-text display-6">{{ total_days }}</p>
-                </div>
+<div class="row">
+    <!-- 考勤扫码 -->
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-qrcode me-2"></i>考勤扫码
+                </h5>
             </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card bg-success text-white">
-                <div class="card-body">
-                    <h5 class="card-title">出勤</h5>
-                    <p class="card-text display-6">{{ present_days }}</p>
+            <div class="card-body text-center">
+                {% if current_event %}
+                <div class="alert alert-info mb-4">
+                    <h6 class="alert-heading mb-2">当前课程</h6>
+                    <p class="mb-0">{{ current_event.course.course_name }}</p>
                 </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card bg-warning text-white">
-                <div class="card-body">
-                    <h5 class="card-title">请假</h5>
-                    <p class="card-text display-6">{{ leave_days }}</p>
+                <div class="alert alert-warning mb-4">
+                    <h6 class="alert-heading mb-2">有效时间</h6>
+                    <p class="mb-0">{{ current_event.scan_start_time }} - {{ current_event.scan_end_time }}</p>
                 </div>
+                <div class="mb-4">
+                    <img src="{{ qr_code_url }}" alt="考勤二维码" class="img-fluid" style="max-width: 200px;">
+                </div>
+                <p class="text-muted">
+                    <i class="fas fa-info-circle me-2"></i>请使用微信扫描二维码进行考勤
+                </p>
+                {% else %}
+                <div class="alert alert-secondary">
+                    <i class="fas fa-info-circle me-2"></i>当前没有进行中的考勤
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
 
-    <!-- 考勤记录表格 -->
-    <div class="card">
-        <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="card-title mb-0">详细记录</h5>
-                <div class="btn-group">
-                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#filterModal">
-                        筛选
-                    </button>
-                    <button type="button" class="btn btn-outline-primary" onclick="exportToExcel()">
-                        导出Excel
-                    </button>
-                </div>
+    <!-- 考勤记录 -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-history me-2"></i>考勤记录
+                </h5>
             </div>
-            <div class="table-responsive">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>日期</th>
-                            <th>扫码时间</th>
-                            <th>课程</th>
-                            <th>状态</th>
-                            <th>扫码时间</th>
-                            <th>操作</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for record in attendance_records %}
-                        <tr>
-                            <td>{{ record.event.event_date|date:"Y-m-d" }}</td>
-                            <td>{{ record.event.scan_start_time|time:"H:i" }} - {{ record.event.scan_end_time|time:"H:i" }}</td>
-                            <td>{{ record.event.course.course_name }}</td>
-                            <td>
-                                {% if record.status == 1 %}
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>课程</th>
+                                <th>日期</th>
+                                <th>签到时间</th>
+                                <th>状态</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for attendance in attendances %}
+                            <tr>
+                                <td>{{ attendance.event.course.course_name }}</td>
+                                <td>{{ attendance.event.event_date }}</td>
+                                <td>{{ attendance.scan_time|default:"未签到" }}</td>
+                                <td>
+                                    {% if attendance.status == 'present' %}
                                     <span class="badge bg-success">出勤</span>
-                                {% elif record.status == 2 %}
+                                    {% elif attendance.status == 'absent' %}
                                     <span class="badge bg-danger">缺勤</span>
-                                {% elif record.status == 3 %}
-                                    <span class="badge bg-warning">请假</span>
-                                {% endif %}
-                            </td>
-                            <td>{{ record.scan_time|date:"Y-m-d H:i:s"|default:"-" }}</td>
-                            <td>
-                                {% if record.status == 2 %}
-                                    <button class="btn btn-sm btn-primary" onclick="showLeaveRequestModal('{{ record.event.id }}')">
-                                        申请请假
-                                    </button>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="6" class="text-center">
-                                <span class="badge bg-danger">缺勤</span>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- 分页 -->
-            {% if attendance_records.has_other_pages %}
-            <nav aria-label="Page navigation" class="mt-4">
-                <ul class="pagination justify-content-center">
-                    {% if attendance_records.has_previous %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ attendance_records.previous_page_number }}">上一页</a>
-                    </li>
-                    {% endif %}
-
-                    {% for num in attendance_records.paginator.page_range %}
-                    <li class="page-item {% if attendance_records.number == num %}active{% endif %}">
-                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
-                    </li>
-                    {% endfor %}
-
-                    {% if attendance_records.has_next %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ attendance_records.next_page_number }}">下一页</a>
-                    </li>
-                    {% endif %}
-                </ul>
-            </nav>
-            {% endif %}
-        </div>
-    </div>
-</div>
-
-<!-- 筛选模态框 -->
-<div class="modal fade" id="filterModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">筛选考勤记录</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="filterForm">
-                    <div class="mb-3">
-                        <label class="form-label">日期范围</label>
-                        <div class="input-group">
-                            <input type="date" class="form-control" id="startDate" name="start_date">
-                            <span class="input-group-text">至</span>
-                            <input type="date" class="form-control" id="endDate" name="end_date">
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">考勤状态</label>
-                        <select class="form-select" id="status" name="status">
-                            <option value="">全部状态</option>
-                            <option value="1">出勤</option>
-                            <option value="2">缺勤</option>
-                            <option value="3">请假</option>
-                        </select>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-primary" onclick="applyFilter()">应用筛选</button>
+                                    {% elif attendance.status == 'late' %}
+                                    <span class="badge bg-warning">迟到</span>
+                                    {% elif attendance.status == 'leave' %}
+                                    <span class="badge bg-info">请假</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">未签到</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center py-4">
+                                    <i class="fas fa-info-circle me-2"></i>暂无考勤记录
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
 </div>
-
-{% block extra_js %}
-<script>
-function applyFilter() {
-    const form = document.getElementById('filterForm');
-    const formData = new FormData(form);
-    const params = new URLSearchParams(formData);
-    window.location.href = '?' + params.toString();
-}
-
-function exportToExcel() {
-    // 实现导出Excel功能
-    alert('导出Excel功能开发中...');
-}
-</script>
-{% endblock %}
 {% endblock %} 

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}微信扫码考勤系统{% endblock %}</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #417690;
+            --secondary-color: #205067;
+            --accent-color: #79aec8;
+            --header-color: #f8f9fa;
+            --border-color: #dee2e6;
+        }
+        body {
+            background-color: #f8f9fa;
+        }
+        .navbar {
+            background-color: var(--primary-color) !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+        }
+        .navbar-brand {
+            font-weight: 600;
+        }
+        .card {
+            box-shadow: 0 1px 3px rgba(0,0,0,.1);
+            border: none;
+            margin-bottom: 1rem;
+        }
+        .card-header {
+            background-color: var(--header-color);
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 600;
+        }
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        .btn-primary:hover {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+        }
+        .table th {
+            background-color: var(--header-color);
+            font-weight: 600;
+        }
+        .footer {
+            background-color: var(--header-color);
+            border-top: 1px solid var(--border-color);
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'index' %}">
+                <i class="fas fa-qrcode me-2"></i>微信扫码考勤系统
+            </a>
+            {% if user.is_authenticated %}
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    {% if user.role == 'student' %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'student_profile' %}">
+                            <i class="fas fa-user me-1"></i>个人信息
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'student_attendance' %}">
+                            <i class="fas fa-clock me-1"></i>考勤
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'student_leave' %}">
+                            <i class="fas fa-calendar-alt me-1"></i>请假
+                        </a>
+                    </li>
+                    {% elif user.role == 'teacher' %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'teacher_profile' %}">
+                            <i class="fas fa-user me-1"></i>个人信息
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'teacher_attendance' %}">
+                            <i class="fas fa-clock me-1"></i>考勤
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'teacher_leave' %}">
+                            <i class="fas fa-calendar-alt me-1"></i>请假
+                        </a>
+                    </li>
+                    {% elif user.role == 'admin' %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'admin_users' %}">
+                            <i class="fas fa-users me-1"></i>用户管理
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'admin_courses' %}">
+                            <i class="fas fa-book me-1"></i>课程管理
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'admin_reports' %}">
+                            <i class="fas fa-chart-bar me-1"></i>统计报表
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'logout' %}">
+                            <i class="fas fa-sign-out-alt me-1"></i>退出
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+    </nav>
+
+    <!-- 主要内容 -->
+    <div class="container mt-4">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- 页脚 -->
+    <footer class="footer mt-5 py-3">
+        <div class="container text-center">
+            <span class="text-muted">© 2024 微信扫码点名系统</span>
+        </div>
+    </footer>
+
+    <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html> 

@@ -2,15 +2,49 @@ from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import User
 
+# 考勤事件状态常量
+EVENT_VALID = 1      # 有效
+EVENT_INVALID = 2    # 无效
+
+# 考勤事件状态选择项
+EVENT_STATUS_CHOICES = [
+    (EVENT_VALID, '有效'),
+    (EVENT_INVALID, '无效'),
+]
+
+# 考勤状态常量
+STATUS_PRESENT = 1   # 出勤
+STATUS_ABSENT = 2    # 缺勤
+STATUS_LEAVE = 3     # 请假
+
+# 考勤状态选择项
+STATUS_CHOICES = [
+    (STATUS_PRESENT, '出勤'),
+    (STATUS_ABSENT, '缺勤'),
+    (STATUS_LEAVE, '请假'),
+]
+
+# 请假状态常量
+LEAVE_PENDING = 1    # 待审批
+LEAVE_APPROVED = 2   # 已批准
+LEAVE_REJECTED = 3   # 已拒绝
+
+# 请假状态选择项
+LEAVE_STATUS_CHOICES = [
+    (LEAVE_PENDING, '待审批'),
+    (LEAVE_APPROVED, '已批准'),
+    (LEAVE_REJECTED, '已拒绝'),
+]
+
 class Department(models.Model):
     """院系信息表"""
     dept_id = models.PositiveSmallIntegerField(primary_key=True, auto_created=True, verbose_name='院系ID')
-    dept_name = models.CharField(max_length=50, unique=True, verbose_name='院系名')
+    dept_name = models.CharField(max_length=50, unique=True, null=False, verbose_name='院系名')
 
     class Meta:
+        db_table = 'Department'
         verbose_name = '院系'
         verbose_name_plural = verbose_name
-        db_table = 'Department'
 
     def __str__(self):
         return self.dept_name
@@ -18,40 +52,29 @@ class Department(models.Model):
 class Major(models.Model):
     """专业信息表"""
     major_id = models.PositiveSmallIntegerField(primary_key=True, auto_created=True, verbose_name='专业ID')
-    major_name = models.CharField(max_length=50, unique=True, verbose_name='专业名')
-    dept = models.ForeignKey(Department, on_delete=models.RESTRICT, db_column='dept_id', verbose_name='所属院系')
+    major_name = models.CharField(max_length=50, unique=True, null=False, verbose_name='专业名')
+    dept = models.ForeignKey(Department, on_delete=models.RESTRICT, db_column='dept_id', null=False, verbose_name='所属院系')
 
     class Meta:
+        db_table = 'Major'
         verbose_name = '专业'
         verbose_name_plural = verbose_name
-        db_table = 'Major'
 
     def __str__(self):
         return self.major_name
 
 class Student(models.Model):
     """学生信息表"""
-    stu_id = models.CharField(max_length=20, primary_key=True, verbose_name='学号')
-    stu_name = models.CharField(max_length=50, verbose_name='姓名')
-    GENDER_MALE = 1    # 男
-    GENDER_FEMALE = 2  # 女
-    
-    GENDER_CHOICES = [
-        (GENDER_MALE, '男'),
-        (GENDER_FEMALE, '女'),
-    ]
-    
-    stu_sex = models.IntegerField(choices=GENDER_CHOICES, null=False, verbose_name='性别')
-    major = models.ForeignKey(Major, on_delete=models.SET_NULL, null=True, db_column='major_id', verbose_name='专业')
-    openid = models.CharField(max_length=50, unique=True, verbose_name='微信openid')
-    stu_class = models.CharField(max_length=50, verbose_name='班级')
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+    stu_id = models.CharField(max_length=11, primary_key=True, verbose_name='学生学号')
+    stu_name = models.CharField(max_length=50, null=False, verbose_name='学生姓名')
+    stu_sex = models.PositiveSmallIntegerField(null=False, verbose_name='学生性别：1-男，2-女')
+    major = models.ForeignKey(Major, on_delete=models.SET_NULL, null=True, db_column='major_id', verbose_name='学生专业')
+    openid = models.CharField(max_length=50, unique=True, null=False, verbose_name='微信openid')
 
     class Meta:
-        verbose_name = '学生'
-        verbose_name_plural = verbose_name
         db_table = 'Student'
+        verbose_name = '学生信息'
+        verbose_name_plural = verbose_name
 
     def __str__(self):
         return f"{self.stu_name}({self.stu_id})"
@@ -59,13 +82,13 @@ class Student(models.Model):
 class Course(models.Model):
     """课程信息表"""
     course_id = models.CharField(max_length=12, primary_key=True, verbose_name='课程代码')
-    course_name = models.CharField(max_length=50, verbose_name='课程名称')
-    dept = models.ForeignKey(Department, on_delete=models.RESTRICT, db_column='dept_id', verbose_name='开课院系')
+    course_name = models.CharField(max_length=50, null=False, verbose_name='课程名称')
+    dept = models.ForeignKey(Department, on_delete=models.RESTRICT, db_column='dept_id', null=False, verbose_name='开课院系')
 
     class Meta:
-        verbose_name = '课程'
-        verbose_name_plural = verbose_name
         db_table = 'Course'
+        verbose_name = '课程信息'
+        verbose_name_plural = verbose_name
 
     def __str__(self):
         return f"{self.course_name}({self.course_id})"
@@ -73,90 +96,85 @@ class Course(models.Model):
 class Teacher(models.Model):
     """教师信息表"""
     teacher_id = models.CharField(max_length=5, primary_key=True, verbose_name='教师工号')
-    teacher_name = models.CharField(max_length=50, verbose_name='教师姓名')
-    dept = models.ForeignKey(Department, on_delete=models.RESTRICT, db_column='dept_id', verbose_name='所属院系')
+    teacher_name = models.CharField(max_length=50, null=False, verbose_name='教师姓名')
+    dept = models.ForeignKey(Department, on_delete=models.RESTRICT, db_column='dept_id', null=False, verbose_name='所属院系')
 
     class Meta:
-        verbose_name = '教师'
-        verbose_name_plural = verbose_name
         db_table = 'Teacher'
+        verbose_name = '教师信息'
+        verbose_name_plural = verbose_name
 
     def __str__(self):
         return f"{self.teacher_name}({self.teacher_id})"
 
 class Enrollment(models.Model):
     """选课记录表"""
-    enroll_id = models.PositiveIntegerField(primary_key=True, auto_created=True, verbose_name='选课记录ID')
-    student = models.ForeignKey(Student, on_delete=models.CASCADE, db_column='stu_id', verbose_name='学生')
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, db_column='course_id', verbose_name='课程')
-    semester = models.CharField(max_length=6, verbose_name='学期')
+    enroll_id = models.AutoField(primary_key=True, verbose_name='选课记录ID')
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, db_column='stu_id', null=False, verbose_name='学生')
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, db_column='course_id', null=False, verbose_name='课程')
+    semester = models.CharField(max_length=6, null=False, verbose_name='选课学期')
 
     class Meta:
+        db_table = 'Enrollment'
         verbose_name = '选课记录'
         verbose_name_plural = verbose_name
-        db_table = 'Enrollment'
-        unique_together = ['student', 'course', 'semester']
+        unique_together = ('student', 'course', 'semester')
 
     def __str__(self):
         return f"{self.student.stu_name}-{self.course.course_name}"
 
 class AttendanceEvent(models.Model):
     """考勤事件表"""
-    event_id = models.PositiveIntegerField(primary_key=True, auto_created=True, verbose_name='考勤事件ID')
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, db_column='course_id', verbose_name='课程')
-    event_date = models.DateField(verbose_name='事件日期')
-    scan_start_time = models.TimeField(verbose_name='扫码有效开始时间')
-    scan_end_time = models.TimeField(verbose_name='扫码有效结束时间')
-    event_status = models.IntegerField(choices=EVENT_STATUS_CHOICES, null=False, default=EVENT_VALID, verbose_name='事件状态')
+    event_id = models.AutoField(primary_key=True, verbose_name='考勤事件ID')
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, db_column='course_id', null=False, verbose_name='课程')
+    event_date = models.DateField(null=False, verbose_name='事件日期')
+    scan_start_time = models.TimeField(null=False, verbose_name='扫码有效开始时间')
+    scan_end_time = models.TimeField(null=False, verbose_name='扫码有效结束时间')
+    event_status = models.PositiveSmallIntegerField(default=1, null=False, verbose_name='二维码/事件状态：1-有效，2-无效')
 
     class Meta:
+        db_table = 'AttendanceEvent'
         verbose_name = '考勤事件'
         verbose_name_plural = verbose_name
-        db_table = 'AttendanceEvent'
 
     def __str__(self):
         return f"{self.course.course_name}-{self.event_date} {self.scan_start_time}"
 
 class Attendance(models.Model):
-    """考勤记录表"""
-    attend_id = models.PositiveIntegerField(primary_key=True, auto_created=True, verbose_name='考勤记录ID')
-    enrollment = models.ForeignKey(Enrollment, on_delete=models.CASCADE, db_column='enroll_id', verbose_name='选课记录')
-    event = models.ForeignKey(AttendanceEvent, on_delete=models.CASCADE, db_column='event_id', verbose_name='考勤事件')
-    status = models.IntegerField(choices=STATUS_CHOICES, null=False, verbose_name='考勤状态')
-    scan_time = models.DateTimeField(null=True, blank=True, verbose_name='扫码时间')
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+    """学生考勤记录表"""
+    attend_id = models.AutoField(primary_key=True, verbose_name='考勤记录ID')
+    enrollment = models.ForeignKey(Enrollment, on_delete=models.CASCADE, db_column='enroll_id', null=False, verbose_name='选课记录')
+    event = models.ForeignKey(AttendanceEvent, on_delete=models.CASCADE, db_column='event_id', null=False, verbose_name='考勤事件')
+    scan_time = models.DateTimeField(null=True, blank=True, verbose_name='扫码考勤时间')
+    status = models.PositiveSmallIntegerField(null=False, verbose_name='考勤状态：1-出勤，2-缺勤，3-请假')
     notes = models.TextField(null=True, blank=True, verbose_name='备注')
 
     class Meta:
+        db_table = 'Attendance'
         verbose_name = '考勤记录'
         verbose_name_plural = verbose_name
-        db_table = 'Attendance'
-        unique_together = ['enrollment', 'event']
+        unique_together = ('enrollment', 'event')
 
     def __str__(self):
         return f"{self.enrollment.student.stu_name}-{self.event.course.course_name}"
 
 class LeaveRequest(models.Model):
     """请假申请表"""
-    leave_request_id = models.PositiveIntegerField(primary_key=True, auto_created=True, verbose_name='请假申请ID')
-    enrollment = models.ForeignKey(Enrollment, on_delete=models.CASCADE, db_column='enroll_id', verbose_name='选课记录')
-    event = models.ForeignKey(AttendanceEvent, on_delete=models.CASCADE, db_column='event_id', verbose_name='考勤事件')
-    reason = models.TextField(verbose_name='请假原因')
-    approval_status = models.IntegerField(choices=LEAVE_STATUS_CHOICES, null=False, verbose_name='审批状态')
-    approver = models.ForeignKey(Teacher, on_delete=models.SET_NULL, null=True, db_column='approver_teacher_id', 
-                               verbose_name='审批教师')
-    submit_time = models.DateTimeField(null=True, blank=True, verbose_name='提交时间')
-    approval_time = models.DateTimeField(null=True, blank=True, verbose_name='审批时间')
+    leave_request_id = models.AutoField(primary_key=True, verbose_name='请假申请ID')
+    enrollment = models.ForeignKey(Enrollment, on_delete=models.CASCADE, db_column='enroll_id', null=False, verbose_name='选课记录')
+    event = models.ForeignKey(AttendanceEvent, on_delete=models.CASCADE, db_column='event_id', null=False, verbose_name='考勤事件')
+    reason = models.TextField(null=False, verbose_name='请假内容')
+    submit_time = models.DateTimeField(auto_now_add=True, verbose_name='提交时间')
+    approval_status = models.PositiveSmallIntegerField(default=1, null=False, verbose_name='审批状态：1-待审批，2-已批准，3-已驳回')
+    approver = models.ForeignKey(Teacher, on_delete=models.SET_NULL, null=True, db_column='approver_teacher_id', verbose_name='审批教师')
+    approval_timestamp = models.DateTimeField(null=True, blank=True, verbose_name='审批时间')
     approver_notes = models.TextField(null=True, blank=True, verbose_name='审批备注')
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
 
     class Meta:
+        db_table = 'LeaveRequest'
         verbose_name = '请假申请'
         verbose_name_plural = verbose_name
-        db_table = 'LeaveRequest'
-        unique_together = ['enrollment', 'event']
+        unique_together = ('enrollment', 'event')
 
     def __str__(self):
         return f"{self.enrollment.student.stu_name}-{self.event.course.course_name}"

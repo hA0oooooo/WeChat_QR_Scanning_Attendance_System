@@ -3,25 +3,26 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.utils import timezone
 from django.http import JsonResponse
-from ..models import Course, AttendanceEvent, AttendanceRecord, LeaveRequest
+from ..models import Course, AttendanceEvent, Attendance, LeaveRequest, TeachingAssignment
 
 @login_required
 def teacher_dashboard(request):
     """教师仪表盘"""
     # 获取教师的课程
-    courses = Course.objects.filter(teacher=request.user)
+    teaching_assignments = TeachingAssignment.objects.filter(teacher__teacher_id=request.user.username)
+    courses = Course.objects.filter(teachingassignment__in=teaching_assignments)
     
     # 获取今日考勤事件
     today = timezone.now().date()
     today_events = AttendanceEvent.objects.filter(
         course__in=courses,
-        date=today
+        event_date=today
     )
     
     # 获取待处理的请假申请
     pending_leave_requests = LeaveRequest.objects.filter(
-        course__in=courses,
-        status='pending'
+        event__course__in=courses,
+        approval_status='pending'
     ).order_by('-created_at')
     
     context = {
@@ -34,7 +35,8 @@ def teacher_dashboard(request):
 @login_required
 def teacher_courses(request):
     """教师课程列表"""
-    courses = Course.objects.filter(teacher=request.user)
+    teaching_assignments = TeachingAssignment.objects.filter(teacher__teacher_id=request.user.username)
+    courses = Course.objects.filter(teachingassignment__in=teaching_assignments)
     context = {
         'courses': courses
     }
@@ -45,23 +47,24 @@ def create_attendance_event(request):
     """创建考勤事件"""
     if request.method == 'POST':
         course_id = request.POST.get('course')
-        date = request.POST.get('date')
-        start_time = request.POST.get('start_time')
-        end_time = request.POST.get('end_time')
+        event_date = request.POST.get('event_date')
+        scan_start_time = request.POST.get('scan_start_time')
+        scan_end_time = request.POST.get('scan_end_time')
         
-        course = get_object_or_404(Course, id=course_id, teacher=request.user)
+        course = get_object_or_404(Course, course_id=course_id, teachingassignment__teacher__teacher_id=request.user.username)
         
         event = AttendanceEvent.objects.create(
             course=course,
-            date=date,
-            start_time=start_time,
-            end_time=end_time
+            event_date=event_date,
+            scan_start_time=scan_start_time,
+            scan_end_time=scan_end_time
         )
         
         messages.success(request, '考勤事件创建成功')
-        return redirect('view_attendance_results', event_id=event.id)
+        return redirect('view_attendance_results', event_id=event.event_id)
     
-    courses = Course.objects.filter(teacher=request.user)
+    teaching_assignments = TeachingAssignment.objects.filter(teacher__teacher_id=request.user.username)
+    courses = Course.objects.filter(teachingassignment__in=teaching_assignments)
     context = {
         'courses': courses
     }
@@ -70,8 +73,8 @@ def create_attendance_event(request):
 @login_required
 def view_attendance_results(request, event_id):
     """查看考勤结果"""
-    event = get_object_or_404(AttendanceEvent, id=event_id, course__teacher=request.user)
-    records = AttendanceRecord.objects.filter(event=event)
+    event = get_object_or_404(AttendanceEvent, event_id=event_id, course__teachingassignment__teacher__teacher_id=request.user.username)
+    records = Attendance.objects.filter(event=event)
     
     context = {
         'event': event,
@@ -82,14 +85,14 @@ def view_attendance_results(request, event_id):
 @login_required
 def approve_leave_request(request, request_id):
     """审批请假申请"""
-    leave_request = get_object_or_404(LeaveRequest, id=request_id, course__teacher=request.user)
+    leave_request = get_object_or_404(LeaveRequest, leave_request_id=request_id, event__course__teachingassignment__teacher__teacher_id=request.user.username)
     
     if request.method == 'POST':
         status = request.POST.get('status')
         remarks = request.POST.get('remarks')
         
-        leave_request.status = status
-        leave_request.teacher_remarks = remarks
+        leave_request.approval_status = status
+        leave_request.approver_notes = remarks
         leave_request.save()
         
         messages.success(request, '请假申请已处理')
@@ -103,9 +106,10 @@ def approve_leave_request(request, request_id):
 @login_required
 def leave_request_list(request):
     """请假申请列表"""
-    courses = Course.objects.filter(teacher=request.user)
+    teaching_assignments = TeachingAssignment.objects.filter(teacher__teacher_id=request.user.username)
+    courses = Course.objects.filter(teachingassignment__in=teaching_assignments)
     leave_requests = LeaveRequest.objects.filter(
-        course__in=courses
+        event__course__in=courses
     ).order_by('-created_at')
     
     context = {

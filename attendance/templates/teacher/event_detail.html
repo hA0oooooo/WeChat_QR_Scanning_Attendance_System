@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+
+{% block title %}考勤详情 - 微信扫码考勤系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- 考勤信息 -->
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>考勤信息
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">课程</span>
+                            <span class="fw-bold">{{ event.course.course_name }}</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">日期</span>
+                            <span class="fw-bold">{{ event.event_date }}</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">开始时间</span>
+                            <span class="fw-bold">{{ event.scan_start_time }}</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">结束时间</span>
+                            <span class="fw-bold">{{ event.scan_end_time }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 考勤统计 -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>考勤统计
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">总人数</span>
+                            <span class="fw-bold">{{ event.total_count }}</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">出勤人数</span>
+                            <span class="fw-bold text-success">{{ event.present_count }}</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">缺勤人数</span>
+                            <span class="fw-bold text-danger">{{ event.absent_count }}</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">迟到人数</span>
+                            <span class="fw-bold text-warning">{{ event.late_count }}</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">请假人数</span>
+                            <span class="fw-bold text-info">{{ event.leave_count }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 考勤详情 -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-list me-2"></i>考勤详情
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>学号</th>
+                                <th>姓名</th>
+                                <th>签到时间</th>
+                                <th>状态</th>
+                                <th>备注</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for attendance in attendances %}
+                            <tr>
+                                <td>{{ attendance.student.stu_id }}</td>
+                                <td>{{ attendance.student.stu_name }}</td>
+                                <td>{{ attendance.scan_time|default:"未签到" }}</td>
+                                <td>
+                                    {% if attendance.status == 'present' %}
+                                    <span class="badge bg-success">出勤</span>
+                                    {% elif attendance.status == 'absent' %}
+                                    <span class="badge bg-danger">缺勤</span>
+                                    {% elif attendance.status == 'late' %}
+                                    <span class="badge bg-warning">迟到</span>
+                                    {% elif attendance.status == 'leave' %}
+                                    <span class="badge bg-info">请假</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">未签到</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ attendance.notes|default:"-" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4">
+                                    <i class="fas fa-info-circle me-2"></i>暂无考勤记录
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
