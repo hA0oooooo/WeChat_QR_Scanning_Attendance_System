@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from django.contrib.auth.models import User
 
 class Department(models.Model):
     """院系信息表"""
@@ -30,11 +31,22 @@ class Major(models.Model):
 
 class Student(models.Model):
     """学生信息表"""
-    stu_id = models.CharField(max_length=11, primary_key=True, verbose_name='学号')
+    stu_id = models.CharField(max_length=20, primary_key=True, verbose_name='学号')
     stu_name = models.CharField(max_length=50, verbose_name='姓名')
-    stu_sex = models.CharField(max_length=1, choices=[('0', '男'), ('1', '女')], verbose_name='性别')
+    GENDER_MALE = 1    # 男
+    GENDER_FEMALE = 2  # 女
+    
+    GENDER_CHOICES = [
+        (GENDER_MALE, '男'),
+        (GENDER_FEMALE, '女'),
+    ]
+    
+    stu_sex = models.IntegerField(choices=GENDER_CHOICES, null=False, verbose_name='性别')
     major = models.ForeignKey(Major, on_delete=models.SET_NULL, null=True, db_column='major_id', verbose_name='专业')
     openid = models.CharField(max_length=50, unique=True, verbose_name='微信openid')
+    stu_class = models.CharField(max_length=50, verbose_name='班级')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
 
     class Meta:
         verbose_name = '学生'
@@ -93,11 +105,9 @@ class AttendanceEvent(models.Model):
     event_id = models.PositiveIntegerField(primary_key=True, auto_created=True, verbose_name='考勤事件ID')
     course = models.ForeignKey(Course, on_delete=models.CASCADE, db_column='course_id', verbose_name='课程')
     event_date = models.DateField(verbose_name='事件日期')
-    scan_start_time = models.TimeField(verbose_name='扫码开始时间')
-    scan_end_time = models.TimeField(verbose_name='扫码结束时间')
-    event_status = models.CharField(max_length=1, choices=[('0', '有效'), ('1', '无效')], 
-                                  default='0', verbose_name='事件状态')
-    creation_time = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    scan_start_time = models.TimeField(verbose_name='扫码有效开始时间')
+    scan_end_time = models.TimeField(verbose_name='扫码有效结束时间')
+    event_status = models.IntegerField(choices=EVENT_STATUS_CHOICES, null=False, default=EVENT_VALID, verbose_name='事件状态')
 
     class Meta:
         verbose_name = '考勤事件'
@@ -105,16 +115,17 @@ class AttendanceEvent(models.Model):
         db_table = 'AttendanceEvent'
 
     def __str__(self):
-        return f"{self.course.course_name}-{self.event_date}"
+        return f"{self.course.course_name}-{self.event_date} {self.scan_start_time}"
 
 class Attendance(models.Model):
     """考勤记录表"""
     attend_id = models.PositiveIntegerField(primary_key=True, auto_created=True, verbose_name='考勤记录ID')
     enrollment = models.ForeignKey(Enrollment, on_delete=models.CASCADE, db_column='enroll_id', verbose_name='选课记录')
     event = models.ForeignKey(AttendanceEvent, on_delete=models.CASCADE, db_column='event_id', verbose_name='考勤事件')
+    status = models.IntegerField(choices=STATUS_CHOICES, null=False, verbose_name='考勤状态')
     scan_time = models.DateTimeField(null=True, blank=True, verbose_name='扫码时间')
-    status = models.CharField(max_length=1, choices=[('0', '出勤'), ('1', '缺勤'), ('2', '请假')], 
-                            verbose_name='考勤状态')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
     notes = models.TextField(null=True, blank=True, verbose_name='备注')
 
     class Meta:
@@ -132,14 +143,14 @@ class LeaveRequest(models.Model):
     enrollment = models.ForeignKey(Enrollment, on_delete=models.CASCADE, db_column='enroll_id', verbose_name='选课记录')
     event = models.ForeignKey(AttendanceEvent, on_delete=models.CASCADE, db_column='event_id', verbose_name='考勤事件')
     reason = models.TextField(verbose_name='请假原因')
-    submit_time = models.DateTimeField(null=True, blank=True, verbose_name='提交时间')
-    approval_status = models.CharField(max_length=1, 
-                                     choices=[('0', '待审批'), ('1', '已批准'), ('2', '已驳回')],
-                                     default='0', verbose_name='审批状态')
+    approval_status = models.IntegerField(choices=LEAVE_STATUS_CHOICES, null=False, verbose_name='审批状态')
     approver = models.ForeignKey(Teacher, on_delete=models.SET_NULL, null=True, db_column='approver_teacher_id', 
                                verbose_name='审批教师')
+    submit_time = models.DateTimeField(null=True, blank=True, verbose_name='提交时间')
     approval_time = models.DateTimeField(null=True, blank=True, verbose_name='审批时间')
     approver_notes = models.TextField(null=True, blank=True, verbose_name='审批备注')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
 
     class Meta:
         verbose_name = '请假申请'
@@ -181,4 +192,54 @@ class ClassSchedule(models.Model):
         db_table = 'ClassSchedule'
 
     def __str__(self):
-        return f"{self.assignment.course.course_name}-{self.get_weekday_display()}" 
+        return f"{self.assignment.course.course_name}-{self.get_weekday_display()}"
+
+class SystemSettings(models.Model):
+    """系统设置模型"""
+    system_name = models.CharField('系统名称', max_length=100, default='微信扫码考勤系统')
+    attendance_start_time = models.TimeField('默认考勤开始时间', default='08:00')
+    attendance_end_time = models.TimeField('默认考勤结束时间', default='17:00')
+    late_threshold = models.IntegerField('迟到阈值（分钟）', default=15)
+    early_leave_threshold = models.IntegerField('早退阈值（分钟）', default=15)
+    max_leave_days = models.IntegerField('最大请假天数', default=30)
+    created_at = models.DateTimeField('创建时间', auto_now_add=True)
+    updated_at = models.DateTimeField('更新时间', auto_now=True)
+
+    class Meta:
+        verbose_name = '系统设置'
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return self.system_name
+
+class PermissionSettings(models.Model):
+    """权限设置模型"""
+    student_view_attendance = models.BooleanField('学生查看考勤记录', default=True)
+    student_apply_leave = models.BooleanField('学生申请请假', default=True)
+    teacher_create_attendance = models.BooleanField('教师创建考勤', default=True)
+    teacher_approve_leave = models.BooleanField('教师审批请假', default=True)
+    created_at = models.DateTimeField('创建时间', auto_now_add=True)
+    updated_at = models.DateTimeField('更新时间', auto_now=True)
+
+    class Meta:
+        verbose_name = '权限设置'
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return '权限设置'
+
+class SystemLog(models.Model):
+    """系统日志模型"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='用户')
+    action = models.CharField('操作', max_length=200)
+    ip_address = models.GenericIPAddressField('IP地址')
+    status = models.BooleanField('状态', default=True)  # True表示成功，False表示失败
+    timestamp = models.DateTimeField('时间', auto_now_add=True)
+
+    class Meta:
+        verbose_name = '系统日志'
+        verbose_name_plural = verbose_name
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        return f'{self.user.username} - {self.action} - {self.timestamp}' 

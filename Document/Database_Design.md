@@ -135,7 +135,7 @@ CREATE TABLE `Major` (
 CREATE TABLE `Student` (
   `stu_id` char(11) NOT NULL COMMENT '学生学号',
   `stu_name` varchar(50) NOT NULL COMMENT '学生姓名',
-  `stu_sex` enum('0','1') NOT NULL COMMENT '学生性别',
+  `stu_sex` TINYINT NOT NULL COMMENT '学生性别：1-男，2-女',
   `major_id` tinyint unsigned DEFAULT NULL COMMENT '学生专业ID',
   `openid` varchar(50) NOT NULL COMMENT '微信openid',
   PRIMARY KEY (`stu_id`),
@@ -194,8 +194,7 @@ CREATE TABLE `AttendanceEvent` (
   `event_date` date NOT NULL COMMENT '事件日期',
   `scan_start_time` time NOT NULL COMMENT '扫码有效开始时间',
   `scan_end_time` time NOT NULL COMMENT '扫码有效结束时间',
-  `event_status` enum('0','1') NOT NULL DEFAULT '0' COMMENT '事件状态',
-  `creation_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '考勤事件创建时间',
+  `event_status` TINYINT NOT NULL DEFAULT 1 COMMENT '二维码/事件状态：1-有效，2-无效',
   PRIMARY KEY (`event_id`),
   KEY `fk_event_course` (`course_id`),
   CONSTRAINT `fk_event_course` 
@@ -209,7 +208,7 @@ CREATE TABLE `Attendance` (
   `enroll_id` int unsigned NOT NULL COMMENT '选课记录ID',
   `event_id` int unsigned NOT NULL COMMENT '考勤事件ID',
   `scan_time` datetime DEFAULT NULL COMMENT '扫码考勤时间',
-  `status` enum('0','1','2') NOT NULL COMMENT '考勤状态',
+  `status` TINYINT NOT NULL COMMENT '考勤状态：1-出勤，2-缺勤，3-请假',
   `notes` text COMMENT '备注',
   PRIMARY KEY (`attend_id`),
   UNIQUE KEY `uk_attend_enroll_event` (`enroll_id`,`event_id`),
@@ -229,7 +228,7 @@ CREATE TABLE `LeaveRequest` (
   `event_id` int unsigned NOT NULL COMMENT '考勤事件ID',
   `reason` text NOT NULL COMMENT '请假内容',
   `submit_time` timestamp NULL DEFAULT CURRENT_TIMESTAMP COMMENT '提交时间',
-  `approval_status` enum('0','1','2') NOT NULL DEFAULT '0' COMMENT '审批状态',
+  `approval_status` TINYINT NOT NULL DEFAULT 1 COMMENT '审批状态：1-待审批，2-已批准，3-已驳回',
   `approver_teacher_id` char(5) DEFAULT NULL COMMENT '审批教师工号',
   `approval_timestamp` datetime DEFAULT NULL COMMENT '审批时间',
   `approver_notes` text COMMENT '审批备注',
@@ -283,107 +282,5 @@ CREATE TABLE `ClassSchedule` (
   KEY `fk_schedule_assign` (`assign_id`),
   CONSTRAINT `fk_schedule_assign` 
     FOREIGN KEY (`assign_id`) REFERENCES `TeachingAssignment` (`assign_id`) 
-    ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `chk_day_of_week` 
-    CHECK (((`day_of_week` >= 1) and (`day_of_week` <= 7))),
-  CONSTRAINT `chk_start_period` 
-    CHECK (((`start_period` > 0) and (`start_period` <= 13))),
-  CONSTRAINT `chk_end_period` 
-    CHECK (((`end_period` >= `start_period`) and (`end_period` <= 13)))
+    ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB COMMENT='课程时间安排表';
-```
-
-
-#### 4.2 范式分析 (Normalization Analysis)
-
-通过合理的实体划分和关系设计，本数据库模式达到了第三范式 (3NF)，有助于减少数据冗余，避免插入、删除和更新操作中的异常情况，保证了数据的一致性，为上层应用程序提供了一个稳定、可靠的数据基础。
-
-1.  **符合第一范式 (1NF):** **原子性**
-
-数据库中的所有表都设计为关系模式，每个属性都存储原子性的数据，不存在重复组或多值属性存储在单一单元格内的情况。例如，课程时间安排被分解到 `ClassSchedule` 表中，确保了星期几、开始节次、结束节次等信息的原子性存储。
-
-
-2.  **符合第二范式 (2NF):** **非主键属性完全依赖于主键**
-  
-对于所有使用 **单列主键** 的表（如 `Department`, `Major`, `Student`, `Course`, `Teacher`, `Admin`, `Enrollment`, `AttendanceEvent`, `Attendance`, `LeaveRequest`, `TeachingAssignment`, `ClassSchedule`），其所有非主键属性都直接依赖于这个唯一的主键，不存在部分依赖于主键组合的情况，因此自动满足 2NF。
- 
- 对于通过 **复合主键** 来保证业务逻辑唯一性的表（如 `Enrollment` 的 `(stu_id, course_id, semester)` 组合；`Attendance` 和 `LeaveRequest` 的 `(enroll_id, event_id)` 组合；`TeachingAssignment` 的 `(teacher_id, course_id)` 组合），其非主键属性（如 `Enrollment.semester`, `Attendance.status`, `LeaveRequest.reason` 等）也依赖于这个能唯一确定一行记录的组合主键，而非仅依赖于组合键的一部分。
-
-
-3. **符合第三范式 (3NF):** **避免了非主键属性对主键的传递依赖**
-
-在 `Student` 表的设计中，只存储了外键 `major_id`。学生所属的院系信息 (`dept_id` 或 `dept_name`) 需要通过 `Student.major_id` 关联到 `Major` 表，再通过 `Major.dept_id` 关联到 `Department` 表来获得，这就消除了 `stu_id -> major_id -> dept_id` 这样的传递依赖关系。
-
-类似地，`Course`只存储了开课院系的 `dept_id`，`Teacher`只存储了所属院系的 `dept_id`，都避免了相关的传递依赖。`AttendanceEvent` (考勤事件) 只存储了 `course_id`，与课程相关的其他信息（如课程名、开课院系）需通过关联 `Course` 表获得。
-
-
-
-#### 4.3 完整性约束说明 (Integrity Constraint Explanation)
-
-为了确保数据库中数据的准确性、一致性、有效性和业务规则的遵循，本设计在物理模式中定义了多种完整性约束。主要体现在以下几个方面：
-
-
-**实体完整性 (Entity Integrity):**
-
-* 每一个表都定义了主键
-
-* 主键列被数据库系统强制要求具有 唯一性 和 非空性 
-
-* 根据实体特性，混合使用了自增整数（如 `enroll_id`, `event_id`）作为代理主键和具有业务含义的定长字符（如 `stu_id`, `course_id`, `teacher_id`）作为自然主键
-
-
-**参照完整性 (Referential Integrity):**
-
-* 广泛使用 外键约束 来定义和强制表间的引用关系
-
-* 根据业务逻辑为外键设置了不同的 删除 和 更新 规则
-
-* **`ON DELETE RESTRICT`**:应用于基础数据表的主键被引用时，其核心作用是，只有当没有任何其他记录再引用这条基础数据记录时，才允许将其删除。例如，对于 `dept_id = 1`，必须先将 `Major`、`Teacher`、`Course` 表中所有 `dept_id = 1` 的记录全部删除，或者将它们的 `dept_id` 修改为引用其他有效的院系 ID 之后，才能成功删除该条记录
-
-* **`ON DELETE CASCADE`**: 应用于关联/从属关系（如 `Enrollment`, `Attendance`, `LeaveRequest`, `TeachingAssignment`, `ClassSchedule`, `AttendanceEvent`）。当主记录（如 `Student`, `Course`, `TeachingAssignment`, `AttendanceEvent`, `Enrollment`）被删除时，相关的从属记录（选课记录、考勤记录、请假记录、时间安排等）也会被自动级联删除，避免产生无意义的孤立数据
-
-* **`ON DELETE SET NULL`**: 应用于允许关联丢失但记录本身仍有意义的情况，如 `Student.major_id` 和 `LeaveRequest.approver_teacher_id`。当对应的专业或审批教师被删除时，学生记录或请假申请记录仍然保留，只是对应的外键字段被置为 `NULL`
-
-* **`ON UPDATE CASCADE`**: 普遍应用于所有外键。当被引用的主键值发生更新时，所有引用该键的外键值也会自动更新，保持引用关系不断裂
-
-
-**域完整性 (Domain Integrity):**
-
-* 确保单个列中的数据值是有效的，符  合其预定义的类型、格式、范围或集合。
-
-* **数据类型** 为每个字段选择了精确的数据类型，如 `TINYINT UNSIGNED`, `CHAR(11)`, `VARCHAR(50)`, `DATE`, `TIME`, `DATETIME`, `TEXT`, `TIMESTAMP`
-
-* **非空约束** 对业务逻辑上必须存在的字段（如名称、ID、部分状态、日期等）强制要求非空
-
-* **枚举类型** 用于精确限定取值范围的字段，如 `stu_sex` ('男', '女')，`Attendance.status` ('出勤', '缺勤', '请假')，`LeaveRequest.approval_status` ('待审批', '已批准', '已驳回')，`AttendanceEvent.event_status` ('有效', '无效')。
-
-* **检查约束** 在 `ClassSchedule` 表中使用了 `CHECK` 约束来确保 `day_of_week` (1-7) 和 `start_period`/`end_period` (1-13 且结束不早于开始) 的值在逻辑上有效
-
-* **默认值** 为某些字段（如 `LeaveRequest.submit_time`, `AttendanceEvent.creation_time`, `LeaveRequest.approval_status`, `AttendanceEvent.event_status`）设置了默认值，简化插入操作并提供初始状态
-
-
-**用户定义完整性 (User-Defined Integrity):**
-
-
-* **唯一约束** 除了主键外，还需保证业务唯一性的字段或字段组合（如 `dept_name`, `major_name`, `Enrollment` 表的 `(stu_id, course_id, semester)` 等组合添加了唯一约束，这些约束确保了关键规则（如学生不能重复选同一学期的课，一次考勤事件对一个学生只有一条考勤或请假记录）
-
-* **应用逻辑:** 更复杂的业务规则，例如"学生不能在考勤事件结束后提交请假申请"或"只有状态为'有效'的考勤事件才能接受签到"，通常在应用程序层面（后端代码）进行检查和强制实施，作为数据库约束的补充
-
-
-
-### 5. 核心 SQL 查询示例
-
-#### 5.1 学生
-
-##### 1.
-
-
-#### 5.2 教师
-
-##### 1.
-
-
-
-#### 5.3 管理员
-
-##### 1.

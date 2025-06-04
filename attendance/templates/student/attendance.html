@@ -1,6 +1,6 @@
-{% extends 'base.html' %}
+{% extends 'common/base.html' %}
 
-{% block title %}考勤记录 - 微信扫码考勤系统{% endblock %}
+{% block title %}考勤记录 - {{ block.super }}{% endblock %}
 
 {% block content %}
 <div class="container">
@@ -8,7 +8,7 @@
 
     <!-- 考勤统计卡片 -->
     <div class="row mb-4">
-        <div class="col-md-3">
+        <div class="col-md-4">
             <div class="card bg-primary text-white">
                 <div class="card-body">
                     <h5 class="card-title">总出勤天数</h5>
@@ -16,27 +16,19 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-4">
             <div class="card bg-success text-white">
                 <div class="card-body">
-                    <h5 class="card-title">正常出勤</h5>
-                    <p class="card-text display-6">{{ normal_days }}</p>
+                    <h5 class="card-title">出勤</h5>
+                    <p class="card-text display-6">{{ present_days }}</p>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-4">
             <div class="card bg-warning text-white">
                 <div class="card-body">
-                    <h5 class="card-title">迟到次数</h5>
-                    <p class="card-text display-6">{{ late_days }}</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-danger text-white">
-                <div class="card-body">
-                    <h5 class="card-title">早退次数</h5>
-                    <p class="card-text display-6">{{ early_leave_days }}</p>
+                    <h5 class="card-title">请假</h5>
+                    <p class="card-text display-6">{{ leave_days }}</p>
                 </div>
             </div>
         </div>
@@ -61,46 +53,42 @@
                     <thead>
                         <tr>
                             <th>日期</th>
+                            <th>扫码时间</th>
                             <th>课程</th>
-                            <th>上课时间</th>
-                            <th>签到时间</th>
-                            <th>签到状态</th>
-                            <th>签退时间</th>
-                            <th>签退状态</th>
-                            <th>备注</th>
+                            <th>状态</th>
+                            <th>扫码时间</th>
+                            <th>操作</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for record in records %}
+                        {% for record in attendance_records %}
                         <tr>
-                            <td>{{ record.date }}</td>
-                            <td>{{ record.course.name }}</td>
-                            <td>{{ record.course.schedule }}</td>
-                            <td>{{ record.check_in_time|time:"H:i"|default:"--" }}</td>
+                            <td>{{ record.event.event_date|date:"Y-m-d" }}</td>
+                            <td>{{ record.event.scan_start_time|time:"H:i" }} - {{ record.event.scan_end_time|time:"H:i" }}</td>
+                            <td>{{ record.event.course.course_name }}</td>
                             <td>
-                                {% if record.check_in_status == 1 %}
-                                    <span class="badge bg-success">正常</span>
-                                {% elif record.check_in_status == 2 %}
-                                    <span class="badge bg-warning">迟到</span>
-                                {% else %}
-                                    <span class="badge bg-secondary">未打卡</span>
+                                {% if record.status == 1 %}
+                                    <span class="badge bg-success">出勤</span>
+                                {% elif record.status == 2 %}
+                                    <span class="badge bg-danger">缺勤</span>
+                                {% elif record.status == 3 %}
+                                    <span class="badge bg-warning">请假</span>
                                 {% endif %}
                             </td>
-                            <td>{{ record.check_out_time|time:"H:i"|default:"--" }}</td>
+                            <td>{{ record.scan_time|date:"Y-m-d H:i:s"|default:"-" }}</td>
                             <td>
-                                {% if record.check_out_status == 1 %}
-                                    <span class="badge bg-success">正常</span>
-                                {% elif record.check_out_status == 2 %}
-                                    <span class="badge bg-warning">早退</span>
-                                {% else %}
-                                    <span class="badge bg-secondary">未打卡</span>
+                                {% if record.status == 2 %}
+                                    <button class="btn btn-sm btn-primary" onclick="showLeaveRequestModal('{{ record.event.id }}')">
+                                        申请请假
+                                    </button>
                                 {% endif %}
                             </td>
-                            <td>{{ record.remarks|default:"--" }}</td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="8" class="text-center">暂无考勤记录</td>
+                            <td colspan="6" class="text-center">
+                                <span class="badge bg-danger">缺勤</span>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -108,24 +96,24 @@
             </div>
 
             <!-- 分页 -->
-            {% if records.has_other_pages %}
+            {% if attendance_records.has_other_pages %}
             <nav aria-label="Page navigation" class="mt-4">
                 <ul class="pagination justify-content-center">
-                    {% if records.has_previous %}
+                    {% if attendance_records.has_previous %}
                     <li class="page-item">
-                        <a class="page-link" href="?page={{ records.previous_page_number }}">上一页</a>
+                        <a class="page-link" href="?page={{ attendance_records.previous_page_number }}">上一页</a>
                     </li>
                     {% endif %}
 
-                    {% for num in records.paginator.page_range %}
-                    <li class="page-item {% if records.number == num %}active{% endif %}">
+                    {% for num in attendance_records.paginator.page_range %}
+                    <li class="page-item {% if attendance_records.number == num %}active{% endif %}">
                         <a class="page-link" href="?page={{ num }}">{{ num }}</a>
                     </li>
                     {% endfor %}
 
-                    {% if records.has_next %}
+                    {% if attendance_records.has_next %}
                     <li class="page-item">
-                        <a class="page-link" href="?page={{ records.next_page_number }}">下一页</a>
+                        <a class="page-link" href="?page={{ attendance_records.next_page_number }}">下一页</a>
                     </li>
                     {% endif %}
                 </ul>
@@ -136,40 +124,30 @@
 </div>
 
 <!-- 筛选模态框 -->
-<div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
+<div class="modal fade" id="filterModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="filterModalLabel">筛选考勤记录</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h5 class="modal-title">筛选考勤记录</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <form id="filterForm">
                     <div class="mb-3">
-                        <label for="startDate" class="form-label">开始日期</label>
-                        <input type="date" class="form-control" id="startDate" name="start_date">
+                        <label class="form-label">日期范围</label>
+                        <div class="input-group">
+                            <input type="date" class="form-control" id="startDate" name="start_date">
+                            <span class="input-group-text">至</span>
+                            <input type="date" class="form-control" id="endDate" name="end_date">
+                        </div>
                     </div>
                     <div class="mb-3">
-                        <label for="endDate" class="form-label">结束日期</label>
-                        <input type="date" class="form-control" id="endDate" name="end_date">
-                    </div>
-                    <div class="mb-3">
-                        <label for="course" class="form-label">课程</label>
-                        <select class="form-select" id="course" name="course">
-                            <option value="">全部课程</option>
-                            {% for course in courses %}
-                            <option value="{{ course.id }}">{{ course.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="status" class="form-label">考勤状态</label>
+                        <label class="form-label">考勤状态</label>
                         <select class="form-select" id="status" name="status">
                             <option value="">全部状态</option>
-                            <option value="1">正常</option>
-                            <option value="2">迟到</option>
-                            <option value="3">早退</option>
-                            <option value="4">未打卡</option>
+                            <option value="1">出勤</option>
+                            <option value="2">缺勤</option>
+                            <option value="3">请假</option>
                         </select>
                     </div>
                 </form>

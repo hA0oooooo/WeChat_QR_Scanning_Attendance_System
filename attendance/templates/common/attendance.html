@@ -1,0 +1,58 @@
+{% extends 'common/base.html' %}
+
+{% block title %}考勤 - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title mb-0">考勤</h4>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <div id="qr-reader" style="width: 100%"></div>
+                </div>
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> 请将二维码对准扫描框
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/html5-qrcode"></script>
+<script>
+    function onScanSuccess(decodedText, decodedResult) {
+        // 处理扫描结果
+        $.post("{% url 'scan_qr_code' %}", {
+            qr_code: decodedText,
+            csrfmiddlewaretoken: '{{ csrf_token }}'
+        })
+        .done(function(response) {
+            if (response.success) {
+                alert('考勤成功！');
+            } else {
+                alert(response.message || '考勤失败');
+            }
+        })
+        .fail(function() {
+            alert('系统错误，请稍后重试');
+        });
+    }
+
+    function onScanFailure(error) {
+        // 处理扫描失败
+        console.warn(`扫描失败: ${error}`);
+    }
+
+    let html5QrcodeScanner = new Html5QrcodeScanner(
+        "qr-reader",
+        { fps: 10, qrbox: {width: 250, height: 250} },
+        false
+    );
+    html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+</script>
+{% endblock %} 

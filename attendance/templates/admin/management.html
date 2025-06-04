@@ -1,0 +1,489 @@
+{% extends 'common/base.html' %}
+
+{% block title %}综合管理 - 微信扫码考勤系统{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- 标签页导航 -->
+    <ul class="nav nav-tabs mb-4" id="managementTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button">
+                用户管理
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="courses-tab" data-bs-toggle="tab" data-bs-target="#courses" type="button">
+                课程管理
+            </button>
+        </li>
+    </ul>
+
+    <!-- 标签页内容 -->
+    <div class="tab-content" id="managementTabsContent">
+        <!-- 用户管理 -->
+        <div class="tab-pane fade show active" id="users" role="tabpanel">
+            <!-- 用户类型选择 -->
+            <div class="btn-group mb-3">
+                <button type="button" class="btn btn-outline-primary active" data-user-type="student">学生管理</button>
+                <button type="button" class="btn btn-outline-primary" data-user-type="teacher">教师管理</button>
+            </div>
+
+            <!-- 搜索和筛选 -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-3">
+                            <input type="text" class="form-control" name="search" placeholder="搜索学号/工号/姓名" 
+                                   value="{{ request.GET.search }}">
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" name="department">
+                                <option value="">选择院系</option>
+                                {% for dept in departments %}
+                                <option value="{{ dept.id }}" {% if request.GET.department == dept.id|stringformat:"i" %}selected{% endif %}>
+                                    {{ dept.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" name="major">
+                                <option value="">选择专业</option>
+                                {% for major in majors %}
+                                <option value="{{ major.id }}" {% if request.GET.major == major.id|stringformat:"i" %}selected{% endif %}>
+                                    {{ major.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <button type="submit" class="btn btn-primary w-100">搜索</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 用户列表 -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="card-title mb-0">用户列表</h5>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                            <i class="fas fa-plus"></i> 添加用户
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>学号/工号</th>
+                                    <th>姓名</th>
+                                    <th>院系</th>
+                                    <th>专业</th>
+                                    <th>班级</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="userList">
+                                <!-- 用户列表将通过JavaScript动态加载 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 课程管理 -->
+        <div class="tab-pane fade" id="courses" role="tabpanel">
+            <!-- 搜索和筛选 -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-3">
+                            <input type="text" class="form-control" name="search" placeholder="搜索课程编号/名称" 
+                                   value="{{ request.GET.search }}">
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" name="department">
+                                <option value="">选择院系</option>
+                                {% for dept in departments %}
+                                <option value="{{ dept.id }}" {% if request.GET.department == dept.id|stringformat:"i" %}selected{% endif %}>
+                                    {{ dept.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" name="teacher">
+                                <option value="">选择教师</option>
+                                {% for teacher in teachers %}
+                                <option value="{{ teacher.id }}" {% if request.GET.teacher == teacher.id|stringformat:"i" %}selected{% endif %}>
+                                    {{ teacher.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <button type="submit" class="btn btn-primary w-100">搜索</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 课程列表 -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="card-title mb-0">课程列表</h5>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCourseModal">
+                            <i class="fas fa-plus"></i> 添加课程
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>课程编号</th>
+                                    <th>课程名称</th>
+                                    <th>院系</th>
+                                    <th>教师</th>
+                                    <th>上课地点</th>
+                                    <th>上课时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="courseList">
+                                <!-- 课程列表将通过JavaScript动态加载 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加用户模态框 -->
+<div class="modal fade" id="addUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">添加用户</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addUserForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="userType" class="form-label">用户类型</label>
+                        <select class="form-select" id="userType" name="user_type" required>
+                            <option value="student">学生</option>
+                            <option value="teacher">教师</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="userId" class="form-label">学号/工号</label>
+                        <input type="text" class="form-control" id="userId" name="user_id" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="userName" class="form-label">姓名</label>
+                        <input type="text" class="form-control" id="userName" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="department" class="form-label">院系</label>
+                        <select class="form-select" id="department" name="department" required>
+                            <option value="">请选择院系</option>
+                            {% for dept in departments %}
+                            <option value="{{ dept.id }}">{{ dept.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="major" class="form-label">专业</label>
+                        <select class="form-select" id="major" name="major" required>
+                            <option value="">请选择专业</option>
+                            {% for major in majors %}
+                            <option value="{{ major.id }}">{{ major.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="className" class="form-label">班级</label>
+                        <input type="text" class="form-control" id="className" name="class_name" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="submitUser()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加课程模态框 -->
+<div class="modal fade" id="addCourseModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">添加课程</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addCourseForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="courseId" class="form-label">课程编号</label>
+                        <input type="text" class="form-control" id="courseId" name="course_id" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="courseName" class="form-label">课程名称</label>
+                        <input type="text" class="form-control" id="courseName" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="courseDepartment" class="form-label">院系</label>
+                        <select class="form-select" id="courseDepartment" name="department" required>
+                            <option value="">请选择院系</option>
+                            {% for dept in departments %}
+                            <option value="{{ dept.id }}">{{ dept.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="teacher" class="form-label">教师</label>
+                        <select class="form-select" id="teacher" name="teacher" required>
+                            <option value="">请选择教师</option>
+                            {% for teacher in teachers %}
+                            <option value="{{ teacher.id }}">{{ teacher.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="location" class="form-label">上课地点</label>
+                        <input type="text" class="form-control" id="location" name="location" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="schedule" class="form-label">上课时间</label>
+                        <input type="text" class="form-control" id="schedule" name="schedule" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="submitCourse()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 用户类型切换
+document.querySelectorAll('[data-user-type]').forEach(button => {
+    button.addEventListener('click', function() {
+        // 更新按钮状态
+        document.querySelectorAll('[data-user-type]').forEach(btn => btn.classList.remove('active'));
+        this.classList.add('active');
+        
+        // 加载对应用户列表
+        loadUserList(this.dataset.userType);
+    });
+});
+
+// 加载用户列表
+function loadUserList(userType) {
+    fetch(`/api/${userType}s/`)
+        .then(response => response.json())
+        .then(data => {
+            const tbody = document.getElementById('userList');
+            tbody.innerHTML = data.map(user => `
+                <tr>
+                    <td>${user.user_id}</td>
+                    <td>${user.name}</td>
+                    <td>${user.department.name}</td>
+                    <td>${user.major.name}</td>
+                    <td>${user.class_name}</td>
+                    <td>
+                        <span class="badge bg-${user.is_active ? 'success' : 'danger'}">
+                            ${user.is_active ? '正常' : '禁用'}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-outline-primary" 
+                                    onclick="editUser('${user.id}')">
+                                编辑
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" 
+                                    onclick="deleteUser('${user.id}')">
+                                删除
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        });
+}
+
+// 加载课程列表
+function loadCourseList() {
+    fetch('/api/courses/')
+        .then(response => response.json())
+        .then(data => {
+            const tbody = document.getElementById('courseList');
+            tbody.innerHTML = data.map(course => `
+                <tr>
+                    <td>${course.course_id}</td>
+                    <td>${course.name}</td>
+                    <td>${course.department.name}</td>
+                    <td>${course.teacher.name}</td>
+                    <td>${course.location}</td>
+                    <td>${course.schedule}</td>
+                    <td>
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-outline-primary" 
+                                    onclick="editCourse('${course.id}')">
+                                编辑
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" 
+                                    onclick="deleteCourse('${course.id}')">
+                                删除
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        });
+}
+
+// 提交用户表单
+function submitUser() {
+    const form = document.getElementById('addUserForm');
+    const formData = new FormData(form);
+    
+    fetch('/api/users/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('保存失败：' + data.message);
+        }
+    });
+}
+
+// 提交课程表单
+function submitCourse() {
+    const form = document.getElementById('addCourseForm');
+    const formData = new FormData(form);
+    
+    fetch('/api/courses/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('保存失败：' + data.message);
+        }
+    });
+}
+
+// 编辑用户
+function editUser(userId) {
+    fetch(`/api/users/${userId}/`)
+        .then(response => response.json())
+        .then(data => {
+            // 填充表单数据
+            document.getElementById('userType').value = data.user_type;
+            document.getElementById('userId').value = data.user_id;
+            document.getElementById('userName').value = data.name;
+            document.getElementById('department').value = data.department;
+            document.getElementById('major').value = data.major;
+            document.getElementById('className').value = data.class_name;
+            
+            // 显示模态框
+            new bootstrap.Modal(document.getElementById('addUserModal')).show();
+        });
+}
+
+// 编辑课程
+function editCourse(courseId) {
+    fetch(`/api/courses/${courseId}/`)
+        .then(response => response.json())
+        .then(data => {
+            // 填充表单数据
+            document.getElementById('courseId').value = data.course_id;
+            document.getElementById('courseName').value = data.name;
+            document.getElementById('courseDepartment').value = data.department;
+            document.getElementById('teacher').value = data.teacher;
+            document.getElementById('location').value = data.location;
+            document.getElementById('schedule').value = data.schedule;
+            
+            // 显示模态框
+            new bootstrap.Modal(document.getElementById('addCourseModal')).show();
+        });
+}
+
+// 删除用户
+function deleteUser(userId) {
+    if (confirm('确定要删除这个用户吗？')) {
+        fetch(`/api/users/${userId}/`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('删除失败：' + data.message);
+            }
+        });
+    }
+}
+
+// 删除课程
+function deleteCourse(courseId) {
+    if (confirm('确定要删除这个课程吗？')) {
+        fetch(`/api/courses/${courseId}/`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('删除失败：' + data.message);
+            }
+        });
+    }
+}
+
+// 页面加载时初始化
+document.addEventListener('DOMContentLoaded', function() {
+    // 加载默认用户列表（学生）
+    loadUserList('student');
+    // 加载课程列表
+    loadCourseList();
+});
+</script>
+{% endblock %} 

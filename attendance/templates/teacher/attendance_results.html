@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'common/base.html' %}
 
 {% block title %}考勤结果 - 微信扫码考勤系统{% endblock %}
 
@@ -21,16 +21,22 @@
             <hr>
             <div class="row">
                 <div class="col-md-3">
-                    <p><strong>课程：</strong>{{ attendance_event.course.name }}</p>
+                    <p><strong>课程：</strong>{{ attendance_event.course.course_name }}</p>
                 </div>
                 <div class="col-md-3">
-                    <p><strong>日期：</strong>{{ attendance_event.date|date:"Y-m-d" }}</p>
+                    <p><strong>日期：</strong>{{ attendance_event.event_date|date:"Y-m-d" }}</p>
                 </div>
                 <div class="col-md-3">
-                    <p><strong>时间：</strong>{{ attendance_event.start_time|time:"H:i" }} - {{ attendance_event.end_time|time:"H:i" }}</p>
+                    <p><strong>扫码时间：</strong>{{ attendance_event.scan_start_time|time:"H:i" }} - {{ attendance_event.scan_end_time|time:"H:i" }}</p>
                 </div>
                 <div class="col-md-3">
-                    <p><strong>地点：</strong>{{ attendance_event.course.location }}</p>
+                    <p><strong>状态：</strong>
+                        {% if attendance_event.event_status == 1 %}
+                            <span class="badge bg-success">有效</span>
+                        {% else %}
+                            <span class="badge bg-danger">无效</span>
+                        {% endif %}
+                    </p>
                 </div>
             </div>
         </div>
@@ -38,7 +44,7 @@
 
     <!-- 考勤统计 -->
     <div class="row mb-4">
-        <div class="col-md-3">
+        <div class="col-md-4">
             <div class="card bg-primary text-white">
                 <div class="card-body">
                     <h6 class="card-title">应到人数</h6>
@@ -46,79 +52,66 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-4">
             <div class="card bg-success text-white">
                 <div class="card-body">
-                    <h6 class="card-title">正常出勤</h6>
-                    <p class="display-6">{{ normal_count }}</p>
+                    <h6 class="card-title">出勤</h6>
+                    <p class="display-6">{{ present_count }}</p>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-4">
             <div class="card bg-warning text-white">
                 <div class="card-body">
-                    <h6 class="card-title">迟到/早退</h6>
-                    <p class="display-6">{{ late_early_count }}</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-danger text-white">
-                <div class="card-body">
-                    <h6 class="card-title">缺勤</h6>
-                    <p class="display-6">{{ absent_count }}</p>
+                    <h6 class="card-title">请假</h6>
+                    <p class="display-6">{{ leave_count }}</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 考勤详情表格 -->
+    <!-- 考勤记录表格 -->
     <div class="card">
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-hover">
+                <table class="table">
                     <thead>
                         <tr>
                             <th>学号</th>
                             <th>姓名</th>
-                            <th>签到时间</th>
-                            <th>签退时间</th>
+                            <th>班级</th>
                             <th>状态</th>
-                            <th>备注</th>
+                            <th>扫码时间</th>
                             <th>操作</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for record in attendance_records %}
                         <tr>
-                            <td>{{ record.student.student_id }}</td>
-                            <td>{{ record.student.name }}</td>
-                            <td>{{ record.check_in_time|time:"H:i:s"|default:"-" }}</td>
-                            <td>{{ record.check_out_time|time:"H:i:s"|default:"-" }}</td>
+                            <td>{{ record.enrollment.student.stu_id }}</td>
+                            <td>{{ record.enrollment.student.stu_name }}</td>
+                            <td>{{ record.enrollment.student.stu_class }}</td>
                             <td>
                                 {% if record.status == 1 %}
-                                <span class="badge bg-success">正常</span>
+                                    <span class="badge bg-success">出勤</span>
                                 {% elif record.status == 2 %}
-                                <span class="badge bg-warning">迟到</span>
+                                    <span class="badge bg-danger">缺勤</span>
                                 {% elif record.status == 3 %}
-                                <span class="badge bg-warning">早退</span>
-                                {% elif record.status == 4 %}
-                                <span class="badge bg-danger">缺勤</span>
-                                {% else %}
-                                <span class="badge bg-secondary">未签到</span>
+                                    <span class="badge bg-warning">请假</span>
                                 {% endif %}
                             </td>
-                            <td>{{ record.remarks|default:"-" }}</td>
+                            <td>{{ record.scan_time|date:"Y-m-d H:i:s"|default:"-" }}</td>
                             <td>
-                                <button class="btn btn-sm btn-outline-primary" 
-                                        onclick="editRecord('{{ record.id }}')">
+                                <button class="btn btn-sm btn-primary" onclick="showEditModal('{{ record.id }}')">
                                     编辑
                                 </button>
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="7" class="text-center">暂无考勤记录</td>
+                            <td colspan="6" class="text-center">
+                                <span class="badge bg-danger">缺勤</span>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -128,8 +121,8 @@
     </div>
 </div>
 
-<!-- 编辑考勤记录模态框 -->
-<div class="modal fade" id="editRecordModal" tabindex="-1">
+<!-- 编辑模态框 -->
+<div class="modal fade" id="editModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
@@ -137,27 +130,21 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <form id="editRecordForm">
-                    {% csrf_token %}
-                    <input type="hidden" id="recordId" name="record_id">
+                <form id="editForm">
+                    <input type="hidden" id="editId" name="id">
                     <div class="mb-3">
-                        <label for="editStatus" class="form-label">考勤状态</label>
+                        <label class="form-label">考勤状态</label>
                         <select class="form-select" id="editStatus" name="status">
-                            <option value="1">正常</option>
-                            <option value="2">迟到</option>
-                            <option value="3">早退</option>
-                            <option value="4">缺勤</option>
+                            <option value="1">出勤</option>
+                            <option value="2">缺勤</option>
+                            <option value="3">请假</option>
                         </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="editRemarks" class="form-label">备注</label>
-                        <textarea class="form-control" id="editRemarks" name="remarks" rows="3"></textarea>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-primary" onclick="saveRecord()">保存</button>
+                <button type="button" class="btn btn-primary" onclick="saveEdit()">保存</button>
             </div>
         </div>
     </div>
@@ -171,22 +158,21 @@ function exportToExcel() {
     window.location.href = "{% url 'export_attendance' attendance_event.id %}";
 }
 
-function editRecord(recordId) {
+function showEditModal(recordId) {
     // 获取考勤记录信息并显示编辑模态框
     fetch(`/api/attendance/record/${recordId}/`)
         .then(response => response.json())
         .then(data => {
-            document.getElementById('recordId').value = data.id;
+            document.getElementById('editId').value = data.id;
             document.getElementById('editStatus').value = data.status;
-            document.getElementById('editRemarks').value = data.remarks;
-            new bootstrap.Modal(document.getElementById('editRecordModal')).show();
+            new bootstrap.Modal(document.getElementById('editModal')).show();
         });
 }
 
-function saveRecord() {
+function saveEdit() {
     // 保存编辑后的考勤记录
-    const formData = new FormData(document.getElementById('editRecordForm'));
-    fetch(`/api/attendance/record/${formData.get('record_id')}/`, {
+    const formData = new FormData(document.getElementById('editForm'));
+    fetch(`/api/attendance/record/${formData.get('id')}/`, {
         method: 'POST',
         body: formData,
         headers: {

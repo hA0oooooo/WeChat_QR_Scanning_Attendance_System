@@ -1,6 +1,6 @@
-{% extends 'base.html' %}
+{% extends 'common/base.html' %}
 
-{% block title %}请假申请 - 微信扫码考勤系统{% endblock %}
+{% block title %}请假申请 - {{ block.super }}{% endblock %}
 
 {% block content %}
 <div class="container">
@@ -79,12 +79,12 @@
                                     <td>{{ request.start_date }}</td>
                                     <td>{{ request.end_date }}</td>
                                     <td>
-                                        {% if request.status == 0 %}
+                                        {% if request.approval_status == 1 %}
                                             <span class="badge bg-warning">待审批</span>
-                                        {% elif request.status == 1 %}
+                                        {% elif request.approval_status == 2 %}
                                             <span class="badge bg-success">已批准</span>
-                                        {% else %}
-                                            <span class="badge bg-danger">已拒绝</span>
+                                        {% elif request.approval_status == 3 %}
+                                            <span class="badge bg-danger">已驳回</span>
                                         {% endif %}
                                     </td>
                                     <td>
@@ -124,12 +124,12 @@
                                                 </p>
                                                 {% endif %}
                                                 <p><strong>审批状态：</strong>
-                                                    {% if request.status == 0 %}
+                                                    {% if request.approval_status == 1 %}
                                                         <span class="badge bg-warning">待审批</span>
-                                                    {% elif request.status == 1 %}
+                                                    {% elif request.approval_status == 2 %}
                                                         <span class="badge bg-success">已批准</span>
-                                                    {% else %}
-                                                        <span class="badge bg-danger">已拒绝</span>
+                                                    {% elif request.approval_status == 3 %}
+                                                        <span class="badge bg-danger">已驳回</span>
                                                     {% endif %}
                                                 </p>
                                                 {% if request.approver %}

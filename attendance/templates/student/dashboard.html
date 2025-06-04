@@ -1,6 +1,6 @@
-{% extends 'base.html' %}
+{% extends 'common/base.html' %}
 
-{% block title %}学生仪表盘 - 微信扫码考勤系统{% endblock %}
+{% block title %}学生仪表盘 - {{ block.super }}{% endblock %}
 
 {% block content %}
 <div class="container">
@@ -24,48 +24,24 @@
         <!-- 今日考勤状态 -->
         <div class="col-md-8">
             <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">今日考勤状态</h5>
+                </div>
                 <div class="card-body">
-                    <h5 class="card-title">今日考勤状态</h5>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="card bg-light">
-                                <div class="card-body">
-                                    <h6>上班打卡</h6>
-                                    {% if today_attendance and today_attendance.check_in_time %}
-                                        <p class="mb-0">时间：{{ today_attendance.check_in_time|time:"H:i" }}</p>
-                                        <p class="mb-0">状态：
-                                            {% if today_attendance.check_in_status == 1 %}
-                                                <span class="badge bg-success">正常</span>
-                                            {% elif today_attendance.check_in_status == 2 %}
-                                                <span class="badge bg-warning">迟到</span>
-                                            {% endif %}
-                                        </p>
-                                    {% else %}
-                                        <p class="text-danger">未打卡</p>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="card bg-light">
-                                <div class="card-body">
-                                    <h6>下班打卡</h6>
-                                    {% if today_attendance and today_attendance.check_out_time %}
-                                        <p class="mb-0">时间：{{ today_attendance.check_out_time|time:"H:i" }}</p>
-                                        <p class="mb-0">状态：
-                                            {% if today_attendance.check_out_status == 1 %}
-                                                <span class="badge bg-success">正常</span>
-                                            {% elif today_attendance.check_out_status == 2 %}
-                                                <span class="badge bg-warning">早退</span>
-                                            {% endif %}
-                                        </p>
-                                    {% else %}
-                                        <p class="text-danger">未打卡</p>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    {% if today_attendance %}
+                        <p class="mb-0">时间：{{ today_attendance.scan_time|time:"H:i" }}</p>
+                        <p class="mb-0">状态：
+                            {% if today_attendance.status == 1 %}
+                                <span class="badge bg-success">出勤</span>
+                            {% elif today_attendance.status == 2 %}
+                                <span class="badge bg-danger">缺勤</span>
+                            {% elif today_attendance.status == 3 %}
+                                <span class="badge bg-warning">请假</span>
+                            {% endif %}
+                        </p>
+                    {% else %}
+                        <p class="text-danger">缺勤</p>
+                    {% endif %}
                 </div>
             </div>
 
@@ -78,40 +54,34 @@
                             <thead>
                                 <tr>
                                     <th>日期</th>
-                                    <th>上班时间</th>
-                                    <th>上班状态</th>
-                                    <th>下班时间</th>
-                                    <th>下班状态</th>
+                                    <th>签到时间</th>
+                                    <th>状态</th>
+                                    <th>签退时间</th>
+                                    <th>备注</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for record in recent_records %}
                                 <tr>
                                     <td>{{ record.date }}</td>
-                                    <td>{{ record.check_in_time|time:"H:i"|default:"--" }}</td>
+                                    <td>{{ record.timestamp|time:"H:i"|default:"--" }}</td>
                                     <td>
-                                        {% if record.check_in_status == 1 %}
-                                            <span class="badge bg-success">正常</span>
-                                        {% elif record.check_in_status == 2 %}
-                                            <span class="badge bg-warning">迟到</span>
-                                        {% else %}
-                                            <span class="badge bg-secondary">未打卡</span>
+                                        {% if record.status == 1 %}
+                                            <span class="badge bg-success">出勤</span>
+                                        {% elif record.status == 2 %}
+                                            <span class="badge bg-danger">缺勤</span>
+                                        {% elif record.status == 3 %}
+                                            <span class="badge bg-warning">请假</span>
                                         {% endif %}
                                     </td>
                                     <td>{{ record.check_out_time|time:"H:i"|default:"--" }}</td>
-                                    <td>
-                                        {% if record.check_out_status == 1 %}
-                                            <span class="badge bg-success">正常</span>
-                                        {% elif record.check_out_status == 2 %}
-                                            <span class="badge bg-warning">早退</span>
-                                        {% else %}
-                                            <span class="badge bg-secondary">未打卡</span>
-                                        {% endif %}
-                                    </td>
+                                    <td>{{ record.remarks|default:"--" }}</td>
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="5" class="text-center">暂无考勤记录</td>
+                                    <td colspan="5" class="text-center">
+                                        <span class="badge bg-danger">缺勤</span>
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>

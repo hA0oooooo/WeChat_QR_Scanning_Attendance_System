@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'attendance/base.html' %}
 
 {% block title %}首页 - 微信扫码考勤系统{% endblock %}
 
@@ -72,28 +72,21 @@
                         <tr>
                             <td>上班打卡</td>
                             <td>
-                                {% if today_attendance.check_in_status == 1 %}
-                                <span class="badge bg-success">正常</span>
-                                {% elif today_attendance.check_in_status == 2 %}
-                                <span class="badge bg-warning">迟到</span>
+                                {% if today_attendance and today_attendance.status %}
+                                    <p class="mb-0">时间：{{ today_attendance.timestamp|time:"H:i" }}</p>
+                                    <p class="mb-0">状态：
+                                        {% if today_attendance.status == 1 %}
+                                            <span class="badge bg-success">出勤</span>
+                                        {% elif today_attendance.status == 2 %}
+                                            <span class="badge bg-danger">缺勤</span>
+                                        {% elif today_attendance.status == 3 %}
+                                            <span class="badge bg-warning">请假</span>
+                                        {% endif %}
+                                    </p>
                                 {% else %}
-                                <span class="badge bg-secondary">未打卡</span>
+                                    <p class="text-danger">缺勤</p>
                                 {% endif %}
                             </td>
-                            <td>{{ today_attendance.check_in_time|default:"--" }}</td>
-                        </tr>
-                        <tr>
-                            <td>下班打卡</td>
-                            <td>
-                                {% if today_attendance.check_out_status == 1 %}
-                                <span class="badge bg-success">正常</span>
-                                {% elif today_attendance.check_out_status == 2 %}
-                                <span class="badge bg-warning">早退</span>
-                                {% else %}
-                                <span class="badge bg-secondary">未打卡</span>
-                                {% endif %}
-                            </td>
-                            <td>{{ today_attendance.check_out_time|default:"--" }}</td>
                         </tr>
                     </tbody>
                 </table>
