@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block title %}提交请假申请{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>提交请假申请</h2>
+    <form method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="event_id" class="form-label">选择考勤事件</label>
+            <select class="form-select" id="event_id" name="event_id" required>
+                <option value="">请选择考勤事件</option>
+                {% for event in events %}
+                <option value="{{ event.event_id }}">{{ event.event_date|date:"Y-m-d" }} - {{ event.course.course_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="reason" class="form-label">请假原因</label>
+            <textarea class="form-control" id="reason" name="reason" rows="3" required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">提交申请</button>
+    </form>
+</div>
+{% endblock %} 

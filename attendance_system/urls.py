@@ -23,12 +23,16 @@ urlpatterns = [
     path("student/attendance/", views.student_attendance, name='student_attendance'),
     path("student/leave/request/", views.submit_leave_request, name='submit_leave_request'),
     path("student/leave/history/", views.leave_request_history, name='leave_request_history'),
+    path("student/profile/", views.student_profile, name='student_profile'),
+    path("student/leave/", views.student_leave, name='student_leave'),
     
     # 教师相关
     path("teacher/dashboard/", views.teacher_dashboard, name='teacher_dashboard'),
     path("teacher/courses/", views.teacher_courses, name='teacher_courses'),
+    path("teacher/course/<str:course_id>/", views.course_detail, name='course_detail'),
     path("teacher/attendance/create/", views.create_attendance_event, name='create_attendance_event'),
     path("teacher/attendance/results/<int:event_id>/", views.view_attendance_results, name='view_attendance_results'),
+    path("teacher/profile/", views.teacher_profile, name='teacher_profile'),
     path("teacher/leave/approve/<int:request_id>/", views.approve_leave_request, name='approve_leave_request'),
     path("teacher/leave/list/", views.leave_request_list, name='leave_request_list'),
     

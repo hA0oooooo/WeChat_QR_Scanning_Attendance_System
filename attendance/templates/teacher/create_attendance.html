@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+
+{% block title %}创建考勤 - 微信扫码考勤系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-qrcode me-2"></i>创建考勤
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="createAttendanceForm">
+                    <div class="mb-3">
+                        <label for="course" class="form-label">选择课程</label>
+                        <select class="form-select" id="course" name="course_id" required>
+                            <option value="">请选择课程</option>
+                            {% for course in courses %}
+                            <option value="{{ course.course_id }}">{{ course.course_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="event_date" class="form-label">考勤日期</label>
+                        <input type="date" class="form-control" id="event_date" name="event_date" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="scan_start_time" class="form-label">开始时间</label>
+                        <input type="time" class="form-control" id="scan_start_time" name="scan_start_time" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="scan_end_time" class="form-label">结束时间</label>
+                        <input type="time" class="form-control" id="scan_end_time" name="scan_end_time" required>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-play me-2"></i>开始考勤
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 二维码显示区域 -->
+        <div id="qrCodeArea" class="card mt-4" style="display: none;">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-qrcode me-2"></i>考勤二维码
+                </h5>
+            </div>
+            <div class="card-body text-center">
+                <div class="mb-3">
+                    <img id="qrCode" src="" alt="考勤二维码" class="img-fluid" style="max-width: 200px;">
+                </div>
+                <p class="text-muted">
+                    <i class="fas fa-info-circle me-2"></i>请让学生扫描上方二维码进行考勤
+                </p>
+                <div class="d-grid gap-2">
+                    <a id="viewResultsBtn" href="#" class="btn btn-success">
+                        <i class="fas fa-chart-bar me-2"></i>查看考勤结果
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('createAttendanceForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = {
+        course_id: document.getElementById('course').value,
+        event_date: document.getElementById('event_date').value,
+        scan_start_time: document.getElementById('scan_start_time').value,
+        scan_end_time: document.getElementById('scan_end_time').value
+    };
+    
+    try {
+        const response = await fetch('{% url "create_attendance_event" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // 显示二维码
+            document.getElementById('qrCode').src = data.qr_code;
+            document.getElementById('qrCodeArea').style.display = 'block';
+            document.getElementById('viewResultsBtn').href = `/attendance/results/${data.event_id}`;
+            
+            // 显示成功消息
+            alert('考勤创建成功！');
+        } else {
+            alert(data.message || '创建考勤失败');
+        }
+    } catch (error) {
+        alert('系统错误，请稍后重试');
+        console.error('Error:', error);
+    }
+});
+</script>
+{% endblock %} 

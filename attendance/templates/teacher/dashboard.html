@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block title %}教师仪表盘 - 微信扫码考勤系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- 教师信息 -->
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-user me-2"></i>教师信息
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <i class="fas fa-user-circle fa-5x text-primary"></i>
+                </div>
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">工号</span>
+                            <span class="fw-bold">{{ teacher.teacher_id }}</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">姓名</span>
+                            <span class="fw-bold">{{ teacher.teacher_name }}</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">院系</span>
+                            <span class="fw-bold">{{ teacher.dept.dept_name }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 今日考勤事件 -->
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-calendar-check me-2"></i>今日考勤事件
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if today_events %}
+                    <div class="list-group">
+                        {% for event in today_events %}
+                            <a href="{% url 'view_attendance_results' event.event_id %}" class="list-group-item list-group-item-action">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1">{{ event.course.course_name }}</h6>
+                                        <small class="text-muted">{{ event.scan_start_time }} - {{ event.scan_end_time }}</small>
+                                    </div>
+                                    <span class="badge bg-primary rounded-pill">查看结果</span>
+                                </div>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted mb-0">今日暂无考勤事件</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- 最近请假申请 -->
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-clipboard-list me-2"></i>最近请假申请
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if recent_leave_requests %}
+                    <div class="list-group">
+                        {% for request in recent_leave_requests %}
+                            <a href="{% url 'approve_leave_request' request.leave_request_id %}" class="list-group-item list-group-item-action">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1">{{ request.enrollment.student.stu_name }} - {{ request.event.course.course_name }}</h6>
+                                        <small class="text-muted">{{ request.submit_time }}</small>
+                                    </div>
+                                    <span class="badge bg-warning rounded-pill">待审批</span>
+                                </div>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted mb-0">暂无请假申请</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

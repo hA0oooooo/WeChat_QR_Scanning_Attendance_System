@@ -1,0 +1,250 @@
+{% extends 'base.html' %}
+
+{% block title %}审批请假申请 - 微信扫码考勤系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- 请假申请详情 -->
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-clipboard-list me-2"></i>请假申请详情
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">申请ID</span>
+                            <span class="fw-bold">{{ leave_request.leave_request_id }}</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">学生姓名</span>
+                            <span class="fw-bold">{{ leave_request.enrollment.student.stu_name }}</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">学号</span>
+                            <span class="fw-bold">{{ leave_request.enrollment.student.stu_id }}</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">课程</span>
+                            <span class="fw-bold">{{ leave_request.event.course.course_name }}</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">考勤日期</span>
+                            <span class="fw-bold">{{ leave_request.event.event_date }}</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">提交时间</span>
+                            <span class="fw-bold">{{ leave_request.submit_time|date:"Y-m-d H:i" }}</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">当前状态</span>
+                            <span class="fw-bold">
+                                {% if leave_request.approval_status == 1 %}
+                                <span class="badge bg-warning">待审批</span>
+                                {% elif leave_request.approval_status == 2 %}
+                                <span class="badge bg-success">已批准</span>
+                                {% else %}
+                                <span class="badge bg-danger">已拒绝</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 请假原因 -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-comment-alt me-2"></i>请假原因
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-0">{{ leave_request.reason }}</p>
+            </div>
+        </div>
+
+        <!-- 审批表单 -->
+        {% if leave_request.approval_status == 1 %}
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-check-circle me-2"></i>审批操作
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" id="approvalForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">审批结果</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="approval_status" id="approve" value="2" required>
+                            <label class="form-check-label" for="approve">
+                                批准
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="approval_status" id="reject" value="3" required>
+                            <label class="form-check-label" for="reject">
+                                拒绝
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="approver_notes" class="form-label">审批备注</label>
+                        <textarea class="form-control" id="approver_notes" name="approver_notes" rows="3" required></textarea>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane me-2"></i>提交审批
+                        </button>
+                        <a href="{% url 'leave_request_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>返回列表
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        {% else %}
+        <!-- 已审批信息 -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>审批信息
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">审批人</span>
+                            <span class="fw-bold">{{ leave_request.approver.teacher_name }}</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">审批时间</span>
+                            <span class="fw-bold">{{ leave_request.approval_time|date:"Y-m-d H:i" }}</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">审批备注</span>
+                            <span class="fw-bold">{{ leave_request.approver_notes }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <a href="{% url 'leave_request_list' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>返回列表
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 考勤信息 -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>考勤统计
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">总人数</span>
+                            <span class="fw-bold">{{ event.total_count }}</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">出勤人数</span>
+                            <span class="fw-bold text-success">{{ event.present_count }}</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">缺勤人数</span>
+                            <span class="fw-bold text-danger">{{ event.absent_count }}</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">请假人数</span>
+                            <span class="fw-bold text-info">{{ event.leave_count }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 考勤事件信息 -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-calendar-alt me-2"></i>考勤事件信息
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">开始时间</span>
+                            <span class="fw-bold">{{ event.scan_start_time }}</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">结束时间</span>
+                            <span class="fw-bold">{{ event.scan_end_time }}</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">事件状态</span>
+                            <span class="fw-bold">
+                                {% if event.event_status == 1 %}
+                                <span class="badge bg-success">有效</span>
+                                {% else %}
+                                <span class="badge bg-danger">无效</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.getElementById('approvalForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    if (confirm('确定要提交审批结果吗？')) {
+        this.submit();
+    }
+});
+</script>
+{% endblock %}
+{% endblock %} 
