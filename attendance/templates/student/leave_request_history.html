@@ -1,0 +1,336 @@
+{% extends 'base.html' %}
+
+{% block title %}请假记录 - 微信扫码考勤系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-history me-2"></i>请假申请记录
+                </h5>
+                <div>
+                    <a href="{% url 'submit_leave_request' %}" class="btn btn-outline-success btn-sm me-2">
+                        <i class="fas fa-plus me-1"></i>申请请假
+                    </a>
+                    <span class="badge bg-primary">共 {{ leave_requests|length }} 条记录</span>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if leave_requests %}
+                    <!-- 状态筛选 -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <select class="form-select" id="statusFilter">
+                                <option value="">全部状态</option>
+                                <option value="1">待审批</option>
+                                <option value="2">已通过</option>
+                                <option value="3">已拒绝</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                                <input type="text" class="form-control" id="searchInput" placeholder="搜索课程名称...">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="leaveTable">
+                            <thead>
+                                <tr>
+                                    <th>序号</th>
+                                    <th>课程信息</th>
+                                    <th>请假日期</th>
+                                    <th>申请时间</th>
+                                    <th>请假原因</th>
+                                    <th>审批状态</th>
+                                    <th>审批人</th>
+                                    <th>审批时间</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for request in leave_requests %}
+                                <tr data-status="{{ request.approval_status }}" data-course="{{ request.event.course.course_name }}">
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>
+                                        <div>
+                                            <strong>{{ request.event.course.course_name }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ request.event.course.course_id }}</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div>
+                                            <strong>{{ request.event.event_date }}</strong>
+                                            <br>
+                                            <small class="text-muted">
+                                                {{ request.event.scan_start_time }} - {{ request.event.scan_end_time }}
+                                            </small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div>
+                                            <strong>{{ request.submit_time|date:"m-d H:i" }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ request.submit_time|date:"Y年" }}</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="reason-cell" style="max-width: 200px;">
+                                            <span class="reason-text">{{ request.reason|truncatechars:50 }}</span>
+                                            {% if request.reason|length > 50 %}
+                                                <br>
+                                                <button class="btn btn-link btn-sm p-0 show-full-reason" 
+                                                        data-full-reason="{{ request.reason }}">
+                                                    <small>查看完整原因</small>
+                                                </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if request.approval_status == 1 %}
+                                            <span class="badge bg-warning">
+                                                <i class="fas fa-clock me-1"></i>待审批
+                                            </span>
+                                        {% elif request.approval_status == 2 %}
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check me-1"></i>已通过
+                                            </span>
+                                        {% elif request.approval_status == 3 %}
+                                            <span class="badge bg-danger">
+                                                <i class="fas fa-times me-1"></i>已拒绝
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if request.approver %}
+                                            <div>
+                                                <strong>{{ request.approver.teacher_name }}</strong>
+                                                <br>
+                                                <small class="text-muted">{{ request.approver.teacher_id }}</small>
+                                            </div>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if request.approval_time %}
+                                            <div>
+                                                <strong>{{ request.approval_time|date:"m-d H:i" }}</strong>
+                                                <br>
+                                                <small class="text-muted">{{ request.approval_time|date:"Y年" }}</small>
+                                            </div>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-calendar-times fa-4x text-muted mb-4"></i>
+                        <h5 class="text-muted">暂无请假记录</h5>
+                        <p class="text-muted">您还没有提交过请假申请</p>
+                        <a href="{% url 'submit_leave_request' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-plus me-1"></i>申请请假
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 统计信息 -->
+{% if leave_requests %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>请假统计
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    {% with total=leave_requests|length %}
+                    {% with pending=0 approved=0 rejected=0 %}
+                        {% for request in leave_requests %}
+                            {% if request.approval_status == 1 %}
+                                {% with pending=pending|add:1 %}{% endwith %}
+                            {% elif request.approval_status == 2 %}
+                                {% with approved=approved|add:1 %}{% endwith %}
+                            {% elif request.approval_status == 3 %}
+                                {% with rejected=rejected|add:1 %}{% endwith %}
+                            {% endif %}
+                        {% endfor %}
+                        
+                        <div class="col-md-3 col-6 mb-3">
+                            <div class="p-3 bg-light rounded">
+                                <h4 class="text-info mb-1">{{ total }}</h4>
+                                <small class="text-muted">总申请数</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6 mb-3">
+                            <div class="p-3 bg-light rounded">
+                                <h4 class="text-warning mb-1">{{ pending }}</h4>
+                                <small class="text-muted">待审批</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6 mb-3">
+                            <div class="p-3 bg-light rounded">
+                                <h4 class="text-success mb-1">{{ approved }}</h4>
+                                <small class="text-muted">已通过</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6 mb-3">
+                            <div class="p-3 bg-light rounded">
+                                <h4 class="text-danger mb-1">{{ rejected }}</h4>
+                                <small class="text-muted">已拒绝</small>
+                            </div>
+                        </div>
+                    {% endwith %}
+                    {% endwith %}
+                    {% endwith %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- 请假原因详情模态框 -->
+<div class="modal fade" id="reasonModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-file-alt me-2"></i>请假原因详情
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="fullReasonText"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // 状态筛选
+    $('#statusFilter').change(function() {
+        filterTable();
+    });
+    
+    // 搜索功能
+    $('#searchInput').on('input', function() {
+        filterTable();
+    });
+    
+    function filterTable() {
+        var statusFilter = $('#statusFilter').val();
+        var searchText = $('#searchInput').val().toLowerCase();
+        
+        $('#leaveTable tbody tr').each(function() {
+            var row = $(this);
+            var status = row.data('status').toString();
+            var course = row.data('course').toLowerCase();
+            
+            var showRow = true;
+            
+            if (statusFilter && status !== statusFilter) {
+                showRow = false;
+            }
+            
+            if (searchText && course.indexOf(searchText) === -1) {
+                showRow = false;
+            }
+            
+            if (showRow) {
+                row.show();
+            } else {
+                row.hide();
+            }
+        });
+        
+        // 更新序号
+        var visibleRows = $('#leaveTable tbody tr:visible');
+        visibleRows.each(function(index) {
+            $(this).find('td:first').text(index + 1);
+        });
+    }
+    
+    // 显示完整请假原因
+    $('.show-full-reason').click(function() {
+        var fullReason = $(this).data('full-reason');
+        $('#fullReasonText').text(fullReason);
+        $('#reasonModal').modal('show');
+    });
+});
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.bg-light {
+    background-color: #f8f9fa !important;
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+    background-color: #f8f9fa;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(0,0,0,.02);
+}
+
+.badge {
+    font-size: 0.75em;
+}
+
+.form-select, .form-control {
+    border: 1px solid #dee2e6;
+}
+
+.form-select:focus, .form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(65, 118, 144, 0.25);
+}
+
+.reason-cell {
+    word-wrap: break-word;
+    word-break: break-all;
+}
+
+.btn-link {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.btn-link:hover {
+    color: var(--secondary-color);
+    text-decoration: underline;
+}
+
+.card:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,.1);
+    transition: box-shadow 0.2s ease-in-out;
+}
+</style>
+{% endblock %} 

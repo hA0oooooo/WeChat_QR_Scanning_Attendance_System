@@ -66,61 +66,105 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
-                    {% if user.role == 'student' %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'student_profile' %}">
-                            <i class="fas fa-user me-1"></i>个人信息
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'student_attendance' %}">
-                            <i class="fas fa-clock me-1"></i>考勤
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'student_leave' %}">
-                            <i class="fas fa-calendar-alt me-1"></i>请假
-                        </a>
-                    </li>
-                    {% elif user.role == 'teacher' %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'teacher_profile' %}">
-                            <i class="fas fa-user me-1"></i>个人信息
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'teacher_attendance' %}">
-                            <i class="fas fa-clock me-1"></i>考勤
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'teacher_leave' %}">
-                            <i class="fas fa-calendar-alt me-1"></i>请假
-                        </a>
-                    </li>
-                    {% elif user.role == 'admin' %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'admin_users' %}">
-                            <i class="fas fa-users me-1"></i>用户管理
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'admin_courses' %}">
-                            <i class="fas fa-book me-1"></i>课程管理
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'admin_reports' %}">
-                            <i class="fas fa-chart-bar me-1"></i>统计报表
-                        </a>
-                    </li>
+                    {% if user.is_superuser %}
+                        <!-- 管理员菜单 -->
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'admin_dashboard' %}">
+                                <i class="fas fa-tachometer-alt me-1"></i>管理后台
+                            </a>
+                        </li>
+                    {% else %}
+                        {% if user.student %}
+                            <!-- 学生菜单 -->
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'student_dashboard' %}">
+                                    <i class="fas fa-home me-1"></i>首页
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'student_courses' %}">
+                                    <i class="fas fa-book me-1"></i>我的课程
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'student_attendance' %}">
+                                    <i class="fas fa-clipboard-check me-1"></i>考勤记录
+                                </a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="studentDropdown" role="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-calendar-alt me-1"></i>请假管理
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="{% url 'submit_leave_request' %}">
+                                        <i class="fas fa-plus me-1"></i>申请请假
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{% url 'leave_request_history' %}">
+                                        <i class="fas fa-history me-1"></i>请假记录
+                                    </a></li>
+                                </ul>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'attendance_statistics' %}">
+                                    <i class="fas fa-chart-line me-1"></i>出勤统计
+                                </a>
+                            </li>
+                        {% elif user.teacher %}
+                            <!-- 教师菜单 -->
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'teacher_dashboard' %}">
+                                    <i class="fas fa-home me-1"></i>首页
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'teacher_courses' %}">
+                                    <i class="fas fa-book me-1"></i>我的课程
+                                </a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="teacherDropdown" role="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-clipboard-check me-1"></i>考勤管理
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="{% url 'teacher_courses' %}">
+                                        <i class="fas fa-qrcode me-1"></i>考勤事件
+                                    </a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="{% url 'leave_request_list' %}">
+                                        <i class="fas fa-calendar-alt me-1"></i>请假审批
+                                    </a></li>
+                                </ul>
+                            </li>
+                        {% endif %}
                     {% endif %}
                 </ul>
                 <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'logout' %}">
-                            <i class="fas fa-sign-out-alt me-1"></i>退出
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user me-1"></i>
+                            {% if user.student %}
+                                {{ user.student.stu_name }}
+                            {% elif user.teacher %}
+                                {{ user.teacher.teacher_name }}
+                            {% else %}
+                                {{ user.username }}
+                            {% endif %}
                         </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            {% if user.student %}
+                                <li><a class="dropdown-item" href="{% url 'student_profile' %}">
+                                    <i class="fas fa-user me-1"></i>个人信息
+                                </a></li>
+                            {% elif user.teacher %}
+                                <li><a class="dropdown-item" href="{% url 'teacher_profile' %}">
+                                    <i class="fas fa-user me-1"></i>个人信息
+                                </a></li>
+                            {% endif %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'logout' %}">
+                                <i class="fas fa-sign-out-alt me-1"></i>退出登录
+                            </a></li>
+                        </ul>
                     </li>
                 </ul>
             </div>

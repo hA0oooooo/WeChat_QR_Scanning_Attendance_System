@@ -12,13 +12,22 @@ import json
 def index(request):
     """首页视图"""
     if request.user.is_authenticated:
+        # 优先判断是否为管理员
         if request.user.is_staff:
             return redirect('admin_dashboard')
-        elif request.user.is_teacher:
+        # 然后，通过关联的 "teacher" 对象判断是否为教师
+        elif hasattr(request.user, 'teacher'):
             return redirect('teacher_dashboard')
-        else:
+        # 最后，通过关联的 "student" 对象判断是否为学生
+        elif hasattr(request.user, 'student'):
             return redirect('student_dashboard')
-    return render(request, 'common/index.html')
+        # 如果都没有关联，说明身份异常
+        else:
+            messages.error(request, '用户身份异常，请联系管理员。')
+            logout(request) # 将异常用户登出
+            return redirect('login')
+    # 未登录用户，显示公共首页或登录页
+    return redirect('login')
 
 def login_view(request):
     """登录视图"""

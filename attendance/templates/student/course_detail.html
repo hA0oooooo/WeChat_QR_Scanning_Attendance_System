@@ -1,0 +1,322 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ course.course_name }} - 课程详情{% endblock %}
+
+{% block content %}
+<!-- 课程基本信息 -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-book me-2"></i>{{ course.course_name }}
+                    </h5>
+                    <a href="{% url 'student_courses' %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-arrow-left me-1"></i>返回课程列表
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="row">
+                            <div class="col-sm-6 mb-3">
+                                <div class="d-flex">
+                                    <i class="fas fa-code me-2 text-muted mt-1"></i>
+                                    <div>
+                                        <small class="text-muted">课程代码</small>
+                                        <div class="fw-bold">{{ course.course_id }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 mb-3">
+                                <div class="d-flex">
+                                    <i class="fas fa-user me-2 text-muted mt-1"></i>
+                                    <div>
+                                        <small class="text-muted">任课教师</small>
+                                        <div class="fw-bold">{{ course.teacher.teacher_name }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 mb-3">
+                                <div class="d-flex">
+                                    <i class="fas fa-map-marker-alt me-2 text-muted mt-1"></i>
+                                    <div>
+                                        <small class="text-muted">上课地点</small>
+                                        <div class="fw-bold">{{ course.location }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 mb-3">
+                                <div class="d-flex">
+                                    <i class="fas fa-clock me-2 text-muted mt-1"></i>
+                                    <div>
+                                        <small class="text-muted">上课时间</small>
+                                        <div class="fw-bold">{{ course.class_time }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 mb-3">
+                                <div class="d-flex">
+                                    <i class="fas fa-graduation-cap me-2 text-muted mt-1"></i>
+                                    <div>
+                                        <small class="text-muted">学分</small>
+                                        <div class="fw-bold">{{ course.credits }} 学分</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6 mb-3">
+                                <div class="d-flex">
+                                    <i class="fas fa-building me-2 text-muted mt-1"></i>
+                                    <div>
+                                        <small class="text-muted">开课院系</small>
+                                        <div class="fw-bold">{{ course.dept.dept_name }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center p-3 bg-light rounded">
+                            <h6 class="text-muted mb-3">我的出勤情况</h6>
+                            <div class="row">
+                                <div class="col-6">
+                                    <div class="border-end">
+                                        <h4 class="text-success mb-0">
+                                            {% with attended=events_with_status|length %}
+                                                {% with total=events_with_status|length %}
+                                                    {% if total > 0 %}
+                                                        {% widthratio attended total 100 %}%
+                                                    {% else %}
+                                                        0%
+                                                    {% endif %}
+                                                {% endwith %}
+                                            {% endwith %}
+                                        </h4>
+                                        <small class="text-muted">出勤率</small>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <h4 class="text-info mb-0">{{ events_with_status|length }}</h4>
+                                    <small class="text-muted">总课次</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 考勤记录列表 -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-clipboard-list me-2"></i>考勤记录
+                </h5>
+                <div>
+                    <a href="{% url 'submit_leave_request' %}" class="btn btn-outline-warning btn-sm me-2">
+                        <i class="fas fa-calendar-plus me-1"></i>申请请假
+                    </a>
+                    <span class="badge bg-info">共 {{ events_with_status|length }} 次课</span>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if events_with_status %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>序号</th>
+                                    <th>日期</th>
+                                    <th>时间</th>
+                                    <th>考勤状态</th>
+                                    <th>签到时间</th>
+                                    <th>备注</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in events_with_status %}
+                                <tr>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>
+                                        <strong>{{ item.event.event_date }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ item.event.event_date|date:"l" }}</small>
+                                    </td>
+                                    <td>
+                                        {{ item.event.scan_start_time }} - {{ item.event.scan_end_time }}
+                                        <br>
+                                        <small class="text-muted">
+                                            {% if item.event.event_status == 1 %}
+                                                <span class="badge bg-success">进行中</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">已结束</span>
+                                            {% endif %}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        {% if item.attendance %}
+                                            {% if item.attendance.status == 1 %}
+                                                <span class="badge bg-success">
+                                                    <i class="fas fa-check me-1"></i>出勤
+                                                </span>
+                                            {% elif item.attendance.status == 2 %}
+                                                <span class="badge bg-danger">
+                                                    <i class="fas fa-times me-1"></i>缺勤
+                                                </span>
+                                            {% elif item.attendance.status == 3 %}
+                                                <span class="badge bg-warning">
+                                                    <i class="fas fa-calendar-alt me-1"></i>请假
+                                                </span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="badge bg-light text-dark">
+                                                <i class="fas fa-minus me-1"></i>未记录
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if item.attendance and item.attendance.scan_time %}
+                                            {{ item.attendance.scan_time|date:"H:i:s" }}
+                                            <br>
+                                            <small class="text-muted">
+                                                {% if item.attendance.scan_time <= item.event.scan_end_time %}
+                                                    <span class="text-success">准时</span>
+                                                {% else %}
+                                                    <span class="text-warning">迟到</span>
+                                                {% endif %}
+                                            </small>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if item.attendance %}
+                                            {% if item.attendance.status == 3 %}
+                                                <small class="text-muted">
+                                                    <i class="fas fa-info-circle me-1"></i>已请假
+                                                </small>
+                                            {% elif item.attendance.status == 2 %}
+                                                <small class="text-danger">
+                                                    <i class="fas fa-exclamation-triangle me-1"></i>未签到
+                                                </small>
+                                            {% endif %}
+                                        {% else %}
+                                            {% if item.event.event_status == 1 %}
+                                                <small class="text-info">
+                                                    <i class="fas fa-clock me-1"></i>可签到
+                                                </small>
+                                            {% else %}
+                                                <small class="text-muted">
+                                                    <i class="fas fa-clock me-1"></i>已结束
+                                                </small>
+                                            {% endif %}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-calendar-times fa-4x text-muted mb-4"></i>
+                        <h5 class="text-muted">暂无考勤记录</h5>
+                        <p class="text-muted">该课程还没有创建考勤事件</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 统计信息 -->
+{% if events_with_status %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>出勤统计分析
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    {% with total=events_with_status|length %}
+                    {% with present_count=0 leave_count=0 absent_count=0 %}
+                        {% for item in events_with_status %}
+                            {% if item.attendance.status == 1 %}
+                                {% with present_count=present_count|add:1 %}{% endwith %}
+                            {% elif item.attendance.status == 2 %}
+                                {% with absent_count=absent_count|add:1 %}{% endwith %}
+                            {% elif item.attendance.status == 3 %}
+                                {% with leave_count=leave_count|add:1 %}{% endwith %}
+                            {% endif %}
+                        {% endfor %}
+                        
+                        <div class="col-md-3 col-6 mb-3">
+                            <div class="p-3 bg-light rounded">
+                                <h4 class="text-info mb-1">{{ total }}</h4>
+                                <small class="text-muted">总课次</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6 mb-3">
+                            <div class="p-3 bg-light rounded">
+                                <h4 class="text-success mb-1">{{ present_count }}</h4>
+                                <small class="text-muted">出勤次数</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6 mb-3">
+                            <div class="p-3 bg-light rounded">
+                                <h4 class="text-warning mb-1">{{ leave_count }}</h4>
+                                <small class="text-muted">请假次数</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6 mb-3">
+                            <div class="p-3 bg-light rounded">
+                                <h4 class="text-danger mb-1">{{ absent_count }}</h4>
+                                <small class="text-muted">缺勤次数</small>
+                            </div>
+                        </div>
+                    {% endwith %}
+                    {% endwith %}
+                    {% endwith %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.bg-light {
+    background-color: #f8f9fa !important;
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+    background-color: #f8f9fa;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(0,0,0,.02);
+}
+
+.badge {
+    font-size: 0.75em;
+}
+
+.card:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,.1);
+    transition: box-shadow 0.2s ease-in-out;
+}
+</style>
+{% endblock %} 

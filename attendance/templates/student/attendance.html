@@ -3,47 +3,323 @@
 {% block title %}考勤记录 - 微信扫码考勤系统{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-8 mx-auto">
+<!-- 考勤统计概览 -->
+<div class="row mb-4">
+    <div class="col-12">
         <div class="card">
             <div class="card-header">
                 <h5 class="mb-0">
-                    <i class="fas fa-clock me-2"></i>考勤记录
+                    <i class="fas fa-chart-bar me-2"></i>考勤统计概览
                 </h5>
             </div>
             <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>课程</th>
-                                <th>日期</th>
-                                <th>状态</th>
-                                <th>扫码时间</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for record in attendance_records %}
-                            <tr>
-                                <td>{{ record.event.course.course_name }}</td>
-                                <td>{{ record.event.event_date }}</td>
-                                <td>
-                                    {% if record.status == 1 %}
-                                    <span class="badge bg-success">出勤</span>
-                                    {% elif record.status == 2 %}
-                                    <span class="badge bg-danger">缺勤</span>
-                                    {% else %}
-                                    <span class="badge bg-warning">请假</span>
-                                    {% endif %}
-                                </td>
-                                <td>{{ record.scan_time|default:"-" }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                <div class="row text-center">
+                    {% for stat in course_stats %}
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="p-3 bg-light rounded">
+                            <h6 class="text-truncate mb-2">{{ stat.course.course_name }}</h6>
+                            <div class="row">
+                                <div class="col-6">
+                                    <div class="border-end">
+                                        <h5 class="text-primary mb-0">{{ stat.attendance_rate }}%</h5>
+                                        <small class="text-muted">出勤率</small>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <h5 class="text-info mb-0">{{ stat.total }}</h5>
+                                    <small class="text-muted">总课次</small>
+                                </div>
+                            </div>
+                            <div class="row mt-2 small">
+                                <div class="col-4">
+                                    <span class="text-success">{{ stat.present }}</span>
+                                    <br><small>出勤</small>
+                                </div>
+                                <div class="col-4">
+                                    <span class="text-warning">{{ stat.leave }}</span>
+                                    <br><small>请假</small>
+                                </div>
+                                <div class="col-4">
+                                    <span class="text-danger">{{ stat.absent }}</span>
+                                    <br><small>缺勤</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- 考勤记录详情 -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-clipboard-list me-2"></i>考勤记录详情
+                </h5>
+                <div>
+                    <a href="{% url 'attendance_statistics' %}" class="btn btn-outline-info btn-sm me-2">
+                        <i class="fas fa-chart-line me-1"></i>详细统计
+                    </a>
+                    <span class="badge bg-primary">共 {{ attendance_records|length }} 条记录</span>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if attendance_records %}
+                    <!-- 筛选器 -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <select class="form-select" id="courseFilter">
+                                <option value="">全部课程</option>
+                                {% for stat in course_stats %}
+                                <option value="{{ stat.course.course_id }}">{{ stat.course.course_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <select class="form-select" id="statusFilter">
+                                <option value="">全部状态</option>
+                                <option value="1">出勤</option>
+                                <option value="2">缺勤</option>
+                                <option value="3">请假</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="attendanceTable">
+                            <thead>
+                                <tr>
+                                    <th>序号</th>
+                                    <th>课程</th>
+                                    <th>日期</th>
+                                    <th>时间段</th>
+                                    <th>考勤状态</th>
+                                    <th>签到时间</th>
+                                    <th>备注</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for record in attendance_records %}
+                                <tr data-course="{{ record.enrollment.course.course_id }}" data-status="{{ record.status }}">
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>
+                                        <div>
+                                            <strong>{{ record.enrollment.course.course_name }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ record.enrollment.course.course_id }}</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div>
+                                            <strong>{{ record.event.event_date }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ record.event.event_date|date:"l" }}</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {{ record.event.scan_start_time }} - {{ record.event.scan_end_time }}
+                                    </td>
+                                    <td>
+                                        {% if record.status == 1 %}
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check me-1"></i>出勤
+                                            </span>
+                                        {% elif record.status == 2 %}
+                                            <span class="badge bg-danger">
+                                                <i class="fas fa-times me-1"></i>缺勤
+                                            </span>
+                                        {% elif record.status == 3 %}
+                                            <span class="badge bg-warning">
+                                                <i class="fas fa-calendar-alt me-1"></i>请假
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if record.scan_time %}
+                                            <div>
+                                                <strong>{{ record.scan_time|date:"H:i:s" }}</strong>
+                                                <br>
+                                                <small class="text-muted">
+                                                    {% if record.scan_time <= record.event.scan_end_time %}
+                                                        <span class="text-success">
+                                                            <i class="fas fa-check-circle me-1"></i>准时
+                                                        </span>
+                                                    {% else %}
+                                                        <span class="text-warning">
+                                                            <i class="fas fa-clock me-1"></i>迟到
+                                                        </span>
+                                                    {% endif %}
+                                                </small>
+                                            </div>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if record.status == 1 %}
+                                            <small class="text-success">
+                                                <i class="fas fa-thumbs-up me-1"></i>正常出勤
+                                            </small>
+                                        {% elif record.status == 2 %}
+                                            <small class="text-danger">
+                                                <i class="fas fa-exclamation-triangle me-1"></i>未签到
+                                            </small>
+                                        {% elif record.status == 3 %}
+                                            <small class="text-info">
+                                                <i class="fas fa-info-circle me-1"></i>已批准请假
+                                            </small>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-clipboard-list fa-4x text-muted mb-4"></i>
+                        <h5 class="text-muted">暂无考勤记录</h5>
+                        <p class="text-muted">您还没有任何考勤记录</p>
+                        <a href="{% url 'student_courses' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-book me-1"></i>查看我的课程
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 快速操作 -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-bolt me-2"></i>快速操作
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 col-6 mb-3">
+                        <a href="{% url 'student_courses' %}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-book fa-2x mb-2"></i><br>
+                            我的课程
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-6 mb-3">
+                        <a href="{% url 'submit_leave_request' %}" class="btn btn-outline-warning w-100">
+                            <i class="fas fa-calendar-plus fa-2x mb-2"></i><br>
+                            申请请假
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-6 mb-3">
+                        <a href="{% url 'leave_request_history' %}" class="btn btn-outline-info w-100">
+                            <i class="fas fa-history fa-2x mb-2"></i><br>
+                            请假记录
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-6 mb-3">
+                        <a href="{% url 'attendance_statistics' %}" class="btn btn-outline-success w-100">
+                            <i class="fas fa-chart-line fa-2x mb-2"></i><br>
+                            出勤统计
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // 课程筛选
+    $('#courseFilter').change(function() {
+        var selectedCourse = $(this).val();
+        filterTable();
+    });
+    
+    // 状态筛选
+    $('#statusFilter').change(function() {
+        var selectedStatus = $(this).val();
+        filterTable();
+    });
+    
+    function filterTable() {
+        var courseFilter = $('#courseFilter').val();
+        var statusFilter = $('#statusFilter').val();
+        
+        $('#attendanceTable tbody tr').each(function() {
+            var row = $(this);
+            var course = row.data('course');
+            var status = row.data('status').toString();
+            
+            var showRow = true;
+            
+            if (courseFilter && course !== courseFilter) {
+                showRow = false;
+            }
+            
+            if (statusFilter && status !== statusFilter) {
+                showRow = false;
+            }
+            
+            if (showRow) {
+                row.show();
+            } else {
+                row.hide();
+            }
+        });
+        
+        // 更新序号
+        var visibleRows = $('#attendanceTable tbody tr:visible');
+        visibleRows.each(function(index) {
+            $(this).find('td:first').text(index + 1);
+        });
+    }
+});
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.bg-light {
+    background-color: #f8f9fa !important;
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+    background-color: #f8f9fa;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(0,0,0,.02);
+}
+
+.badge {
+    font-size: 0.75em;
+}
+
+.form-select {
+    border: 1px solid #dee2e6;
+}
+
+.form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(65, 118, 144, 0.25);
+}
+
+.card:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,.1);
+    transition: box-shadow 0.2s ease-in-out;
+}
+</style>
 {% endblock %} 

@@ -1,10 +1,12 @@
 from .student_views import (
     student_dashboard,
     student_courses,
+    course_detail as student_course_detail,
     student_attendance,
     submit_leave_request,
     leave_request_history,
     student_profile,
+    attendance_statistics,
     student_leave
 )
 
@@ -55,9 +57,8 @@ def index(request):
     # 教师
     if hasattr(request.user, 'teacher') or request.user.is_staff:
         return redirect('teacher_dashboard')
-    # 学生（更稳妥的判断）
-    from attendance.models import Student
-    if Student.objects.filter(openid=request.user.username).exists():
+    # 学生（使用正确的关联关系判断）
+    if hasattr(request.user, 'student'):
         return redirect('student_dashboard')
     # 兜底：强制登出并提示
     logout(request)

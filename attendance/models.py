@@ -70,6 +70,7 @@ class Student(models.Model):
     stu_sex = models.PositiveSmallIntegerField(null=False, verbose_name='学生性别：1-男，2-女')
     major = models.ForeignKey(Major, on_delete=models.SET_NULL, null=True, db_column='major_id', verbose_name='学生专业')
     openid = models.CharField(max_length=50, unique=True, null=False, verbose_name='微信openid')
+    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True, verbose_name='关联用户账号')
 
     class Meta:
         db_table = 'Student'
@@ -99,6 +100,7 @@ class Teacher(models.Model):
     teacher_id = models.CharField(max_length=5, primary_key=True, verbose_name='教师工号')
     teacher_name = models.CharField(max_length=50, null=False, verbose_name='教师姓名')
     dept = models.ForeignKey(Department, on_delete=models.RESTRICT, db_column='dept_id', null=False, verbose_name='所属院系')
+    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True, verbose_name='关联用户账号')
 
     class Meta:
         db_table = 'Teacher'
@@ -197,7 +199,7 @@ class TeachingAssignment(models.Model):
 
 class ClassSchedule(models.Model):
     """课程时间安排表"""
-    schedule_id = models.PositiveIntegerField(primary_key=True, auto_created=True, verbose_name='时间安排ID')
+    schedule_id = models.AutoField(primary_key=True, verbose_name='时间安排ID')
     assignment = models.ForeignKey(TeachingAssignment, on_delete=models.CASCADE, db_column='assignment_id', 
                                  verbose_name='教学安排')
     weekday = models.PositiveSmallIntegerField(choices=[(i, f'星期{i}') for i in range(1, 8)], verbose_name='星期')

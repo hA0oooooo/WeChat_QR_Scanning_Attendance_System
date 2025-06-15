@@ -16,8 +16,8 @@ from datetime import datetime
 @login_required
 def teacher_dashboard(request):
     """教师仪表盘"""
-    # 获取教师对象
-    teacher = Teacher.objects.get(teacher_id=request.user.username)
+    # 获取教师对象 - 使用正确的关联关系
+    teacher = request.user.teacher
     # now = timezone.now()  # 注释掉真实时间
     now = datetime(2025, 6, 23, 8, 0, 0)  # 演示用假时间
     today = now.date()
@@ -52,7 +52,7 @@ def teacher_dashboard(request):
 def teacher_courses(request):
     """教师课程列表"""
     # 获取教师的课程
-    teaching_assignments = TeachingAssignment.objects.filter(teacher__teacher_id=request.user.username)
+    teaching_assignments = TeachingAssignment.objects.filter(teacher=request.user.teacher)
     courses = Course.objects.filter(teachingassignment__in=teaching_assignments)
     
     context = {
@@ -124,7 +124,7 @@ def approve_leave_request(request, leave_request_id):
         # 更新请假申请状态
         leave_request.approval_status = approval_status
         leave_request.approver_notes = approver_notes
-        leave_request.approver = Teacher.objects.get(teacher_id=request.user.username)
+        leave_request.approver = request.user.teacher
         leave_request.approval_timestamp = timezone.now()
         leave_request.save()
         
@@ -148,7 +148,7 @@ def approve_leave_request(request, leave_request_id):
 @login_required
 def leave_request_list(request):
     """请假申请列表，显示所有请假记录（包括待审批、已通过、已驳回）"""
-    teaching_assignments = TeachingAssignment.objects.filter(teacher__teacher_id=request.user.username)
+    teaching_assignments = TeachingAssignment.objects.filter(teacher=request.user.teacher)
     courses = Course.objects.filter(teachingassignment__in=teaching_assignments)
     # 显示所有请假申请
     leave_requests = LeaveRequest.objects.filter(
@@ -163,7 +163,7 @@ def leave_request_list(request):
 def teacher_profile(request):
     """教师个人信息"""
     # 获取教师信息
-    teacher = Teacher.objects.get(teacher_id=request.user.username)
+    teacher = request.user.teacher
     
     context = {
         'teacher': teacher

@@ -1,8 +1,8 @@
 from django.urls import path
 from .views import (
     index, login_view, scan_qr_code, check_attendance,
-    student_dashboard, student_courses, student_attendance,
-    submit_leave_request, leave_request_history, student_profile,
+    student_dashboard, student_courses, student_course_detail, student_attendance,
+    submit_leave_request, leave_request_history, student_profile, attendance_statistics,
     teacher_dashboard, teacher_courses, course_detail,
     manage_attendance_events, toggle_event_status,
     create_attendance_event, view_attendance_results,
@@ -27,7 +27,9 @@ urlpatterns = [
     # 学生相关
     path('student/dashboard/', student_dashboard, name='student_dashboard'),
     path('student/courses/', student_courses, name='student_courses'),
+    path('student/course/<str:course_id>/', student_course_detail, name='student_course_detail'),
     path('student/attendance/', student_attendance, name='student_attendance'),
+    path('student/statistics/', attendance_statistics, name='attendance_statistics'),
     path('student/leave/submit/', submit_leave_request, name='submit_leave_request'),
     path('student/leave/history/', leave_request_history, name='leave_request_history'),
     path('student/profile/', student_profile, name='student_profile'),

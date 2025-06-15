@@ -4,93 +4,425 @@
 
 {% block content %}
 <div class="row">
-    <!-- 个人信息 -->
+    <!-- 基本信息 -->
     <div class="col-md-4">
         <div class="card mb-4">
             <div class="card-header">
                 <h5 class="mb-0">
-                    <i class="fas fa-user me-2"></i>个人信息
+                    <i class="fas fa-user me-2"></i>基本信息
                 </h5>
             </div>
-            <div class="card-body">
-                <div class="text-center mb-4">
+            <div class="card-body text-center">
+                <div class="mb-4">
                     <i class="fas fa-user-circle fa-5x text-primary"></i>
                 </div>
+                <h5 class="card-title">{{ student.stu_name }}</h5>
+                <p class="text-muted">{{ student.stu_id }}</p>
+                
+                <div class="list-group list-group-flush mt-4">
+                    <div class="list-group-item d-flex justify-content-between">
+                        <span class="text-muted">学号</span>
+                        <strong>{{ student.stu_id }}</strong>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between">
+                        <span class="text-muted">姓名</span>
+                        <strong>{{ student.stu_name }}</strong>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between">
+                        <span class="text-muted">专业</span>
+                        <strong>{{ student.major.major_name }}</strong>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between">
+                        <span class="text-muted">院系</span>
+                        <strong>{{ student.major.dept.dept_name }}</strong>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between">
+                        <span class="text-muted">年级</span>
+                        <strong>{{ student.grade }}级</strong>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between">
+                        <span class="text-muted">班级</span>
+                        <strong>{{ student.class_name }}</strong>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editModal">
+                        <i class="fas fa-edit me-1"></i>申请信息变更
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 账户信息 -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-key me-2"></i>账户信息
+                </h6>
+            </div>
+            <div class="card-body">
                 <div class="list-group list-group-flush">
-                    <div class="list-group-item">
-                        <div class="d-flex justify-content-between">
-                            <span class="text-muted">学号</span>
-                            <span class="fw-bold">{{ student.stu_id }}</span>
-                        </div>
+                    <div class="list-group-item d-flex justify-content-between">
+                        <span class="text-muted">用户名</span>
+                        <strong>{{ user.username }}</strong>
                     </div>
-                    <div class="list-group-item">
-                        <div class="d-flex justify-content-between">
-                            <span class="text-muted">姓名</span>
-                            <span class="fw-bold">{{ student.stu_name }}</span>
-                        </div>
+                    <div class="list-group-item d-flex justify-content-between">
+                        <span class="text-muted">注册时间</span>
+                        <small>{{ user.date_joined|date:"Y-m-d" }}</small>
                     </div>
-                    <div class="list-group-item">
-                        <div class="d-flex justify-content-between">
-                            <span class="text-muted">性别</span>
-                            <span class="fw-bold">{{ student.get_stu_sex_display }}</span>
-                        </div>
+                    <div class="list-group-item d-flex justify-content-between">
+                        <span class="text-muted">最后登录</span>
+                        <small>{{ user.last_login|date:"Y-m-d H:i"|default:"从未登录" }}</small>
                     </div>
-                    <div class="list-group-item">
-                        <div class="d-flex justify-content-between">
-                            <span class="text-muted">专业</span>
-                            <span class="fw-bold">{{ student.major.major_name }}</span>
-                        </div>
-                    </div>
-                    <div class="list-group-item">
-                        <div class="d-flex justify-content-between">
-                            <span class="text-muted">院系</span>
-                            <span class="fw-bold">{{ student.major.dept.dept_name }}</span>
-                        </div>
-                    </div>
+                </div>
+                <div class="mt-3 d-grid">
+                    <button type="button" class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#passwordModal">
+                        <i class="fas fa-lock me-1"></i>修改密码
+                    </button>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- 课表 -->
+    
+    <!-- 选课信息 -->
     <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">
-                    <i class="fas fa-calendar-alt me-2"></i>我的课表
+                    <i class="fas fa-book me-2"></i>选课信息
                 </h5>
+                <span class="badge bg-primary">共 {{ enrollments|length }} 门课程</span>
             </div>
             <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>课程代码</th>
-                                <th>课程名称</th>
-                                <th>开课院系</th>
-                                <th>学期</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for enrollment in enrollments %}
-                            <tr>
-                                <td>{{ enrollment.course.course_id }}</td>
-                                <td>{{ enrollment.course.course_name }}</td>
-                                <td>{{ enrollment.course.dept.dept_name }}</td>
-                                <td>{{ enrollment.semester }}</td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="4" class="text-center py-4">
-                                    <i class="fas fa-info-circle me-2"></i>暂无选课记录
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                {% if enrollments %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>课程名称</th>
+                                    <th>课程代码</th>
+                                    <th>任课教师</th>
+                                    <th>学分</th>
+                                    <th>上课时间</th>
+                                    <th>上课地点</th>
+                                    <th>选课时间</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for enrollment in enrollments %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ enrollment.course.course_name }}</strong>
+                                    </td>
+                                    <td>{{ enrollment.course.course_id }}</td>
+                                    <td>{{ enrollment.course.teacher.teacher_name }}</td>
+                                    <td>
+                                        <span class="badge bg-info">{{ enrollment.course.credits }}</span>
+                                    </td>
+                                    <td>{{ enrollment.course.class_time }}</td>
+                                    <td>{{ enrollment.course.location }}</td>
+                                    <td>
+                                        <small>{{ enrollment.enrollment_date|date:"Y-m-d" }}</small>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- 学分统计 -->
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded text-center">
+                                <h5 class="text-primary mb-1">
+                                    {% with total_credits=0 %}
+                                        {% for enrollment in enrollments %}
+                                            {% with total_credits=total_credits|add:enrollment.course.credits %}{% endwith %}
+                                        {% endfor %}
+                                        {{ total_credits }}
+                                    {% endwith %}
+                                </h5>
+                                <small class="text-muted">总学分</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded text-center">
+                                <h5 class="text-success mb-1">{{ enrollments|length }}</h5>
+                                <small class="text-muted">选修课程数</small>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-book-open fa-4x text-muted mb-4"></i>
+                        <h5 class="text-muted">暂无选课记录</h5>
+                        <p class="text-muted">您还没有选修任何课程</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- 快速操作 -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-bolt me-2"></i>快速操作
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 col-6 mb-3">
+                        <a href="{% url 'student_courses' %}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-book fa-2x mb-2"></i><br>
+                            我的课程
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-6 mb-3">
+                        <a href="{% url 'student_attendance' %}" class="btn btn-outline-success w-100">
+                            <i class="fas fa-clipboard-check fa-2x mb-2"></i><br>
+                            考勤记录
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-6 mb-3">
+                        <a href="{% url 'submit_leave_request' %}" class="btn btn-outline-warning w-100">
+                            <i class="fas fa-calendar-plus fa-2x mb-2"></i><br>
+                            申请请假
+                        </a>
+                    </div>
+                    <div class="col-md-3 col-6 mb-3">
+                        <a href="{% url 'attendance_statistics' %}" class="btn btn-outline-info w-100">
+                            <i class="fas fa-chart-line fa-2x mb-2"></i><br>
+                            出勤统计
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- 信息变更申请模态框 -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit me-2"></i>申请信息变更
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>温馨提示：</strong>个人信息变更需要提交申请，经管理员审核后生效。
+                </div>
+                <form id="editForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="change_type" class="form-label">变更类型</label>
+                        <select class="form-select" id="change_type" name="change_type" required>
+                            <option value="">请选择变更类型</option>
+                            <option value="name">姓名</option>
+                            <option value="class">班级</option>
+                            <option value="contact">联系方式</option>
+                            <option value="other">其他</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="current_value" class="form-label">当前信息</label>
+                        <input type="text" class="form-control" id="current_value" name="current_value" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="new_value" class="form-label">变更为</label>
+                        <input type="text" class="form-control" id="new_value" name="new_value" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="reason" class="form-label">变更原因</label>
+                        <textarea class="form-control" id="reason" name="reason" rows="3" 
+                                  placeholder="请说明变更原因..." required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="submitChangeRequest()">
+                    <i class="fas fa-paper-plane me-1"></i>提交申请
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 修改密码模态框 -->
+<div class="modal fade" id="passwordModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-lock me-2"></i>修改密码
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>安全提醒：</strong>请设置复杂密码，包含字母、数字和特殊字符。
+                </div>
+                <form id="passwordForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="old_password" class="form-label">当前密码</label>
+                        <input type="password" class="form-control" id="old_password" name="old_password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="new_password" class="form-label">新密码</label>
+                        <input type="password" class="form-control" id="new_password" name="new_password" required>
+                        <div class="form-text">密码长度至少8位，建议包含大小写字母、数字和特殊字符</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirm_password" class="form-label">确认新密码</label>
+                        <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-warning" onclick="changePassword()">
+                    <i class="fas fa-save me-1"></i>修改密码
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // 变更类型选择事件
+    $('#change_type').change(function() {
+        var type = $(this).val();
+        var currentValue = '';
+        
+        switch(type) {
+            case 'name':
+                currentValue = '{{ student.stu_name }}';
+                break;
+            case 'class':
+                currentValue = '{{ student.class_name }}';
+                break;
+            case 'contact':
+                currentValue = '暂无';
+                break;
+            default:
+                currentValue = '';
+        }
+        
+        $('#current_value').val(currentValue);
+    });
+});
+
+function submitChangeRequest() {
+    var form = $('#editForm');
+    var changeType = $('#change_type').val();
+    var newValue = $('#new_value').val();
+    var reason = $('#reason').val();
+    
+    if (!changeType || !newValue || !reason) {
+        alert('请填写完整信息');
+        return;
+    }
+    
+    // 这里应该发送AJAX请求到后端
+    alert('信息变更申请已提交，请等待管理员审核');
+    $('#editModal').modal('hide');
+    form[0].reset();
+}
+
+function changePassword() {
+    var oldPassword = $('#old_password').val();
+    var newPassword = $('#new_password').val();
+    var confirmPassword = $('#confirm_password').val();
+    
+    if (!oldPassword || !newPassword || !confirmPassword) {
+        alert('请填写完整信息');
+        return;
+    }
+    
+    if (newPassword.length < 8) {
+        alert('新密码长度至少8位');
+        return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+        alert('两次输入的新密码不一致');
+        return;
+    }
+    
+    // 这里应该发送AJAX请求到后端
+    alert('密码修改功能暂未开放，请联系管理员');
+    $('#passwordModal').modal('hide');
+    $('#passwordForm')[0].reset();
+}
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.bg-light {
+    background-color: #f8f9fa !important;
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+    background-color: #f8f9fa;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(0,0,0,.02);
+}
+
+.list-group-item {
+    border-left: none;
+    border-right: none;
+}
+
+.list-group-item:first-child {
+    border-top: none;
+}
+
+.list-group-item:last-child {
+    border-bottom: none;
+}
+
+.badge {
+    font-size: 0.75em;
+}
+
+.card:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,.1);
+    transition: box-shadow 0.2s ease-in-out;
+}
+
+.modal-content {
+    border: none;
+    border-radius: 0.5rem;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(65, 118, 144, 0.25);
+}
+
+.btn-outline-primary:hover,
+.btn-outline-success:hover,
+.btn-outline-warning:hover,
+.btn-outline-info:hover {
+    transform: translateY(-1px);
+    transition: transform 0.2s ease-in-out;
+}
+</style>
 {% endblock %} 
