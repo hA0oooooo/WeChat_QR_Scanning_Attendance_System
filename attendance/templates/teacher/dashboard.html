@@ -40,31 +40,53 @@
         </div>
     </div>
     
-    <!-- 今日考勤事件 -->
+    <!-- 考勤事件时间序列（横向滑轨，宽度与教师信息对齐） -->
     <div class="col-md-8">
         <div class="card mb-4">
             <div class="card-header">
                 <h5 class="mb-0">
-                    <i class="fas fa-calendar-check me-2"></i>今日考勤事件
+                    <i class="fas fa-calendar-check me-2"></i>考勤事件时间序列
                 </h5>
             </div>
             <div class="card-body">
-                {% if today_events %}
-                    <div class="list-group">
-                        {% for event in today_events %}
-                            <a href="{% url 'view_attendance_results' event.event_id %}" class="list-group-item list-group-item-action">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <h6 class="mb-1">{{ event.course.course_name }}</h6>
-                                        <small class="text-muted">{{ event.scan_start_time }} - {{ event.scan_end_time }}</small>
-                                    </div>
-                                    <span class="badge bg-primary rounded-pill">查看结果</span>
+                {% if all_events %}
+                    <div id="event-scrollbar" class="d-flex flex-row overflow-auto" style="gap: 12px; scroll-behavior: smooth;">
+                        {% for event in all_events %}
+                            <div id="event-{{ event.event_id }}" class="card px-3 py-2 text-center"
+                                style="min-width: 220px; max-width: 220px; border: none;
+                                    {% if event.event_date < now.date %}background: #f8f9fa; color: #888;{% elif event.event_date == now.date and event.scan_start_time <= now.time and event.scan_end_time >= now.time %}background: #fffbe6; color: #222; font-weight: bold; border: 2px solid #007bff;{% else %}background: #fff; color: #222;{% endif %}">
+                                <div style="font-size: 1.1em;">
+                                    {{ event.course.course_name }}
                                 </div>
-                            </a>
+                                <div style="font-size: 0.95em;" class="mb-1 text-muted">
+                                    {{ event.event_date|date:'Y年n月j日' }}<br>{{ event.scan_start_time }}-{{ event.scan_end_time }}
+                                </div>
+                                {% if event.event_date < now.date %}
+                                    <a href="{% url 'view_attendance_results' event.event_id %}" class="badge bg-secondary text-decoration-none">已结束</a>
+                                {% elif event.event_date == now.date and event.scan_start_time <= now.time and event.scan_end_time >= now.time %}
+                                    <a href="{% url 'view_attendance_results' event.event_id %}" class="badge bg-primary text-decoration-none">当前考勤</a>
+                                {% elif event.event_date == now.date and event.scan_start_time > now.time %}
+                                    <span class="badge bg-light text-dark">未到考勤时间</span>
+                                {% else %}
+                                    <span class="badge bg-light text-dark">未到考勤时间</span>
+                                {% endif %}
+                            </div>
                         {% endfor %}
                     </div>
+                    <script>
+                        // 自动滚动到当前课次（如有），否则滚到最右
+                        window.addEventListener('DOMContentLoaded', function() {
+                            var current = document.querySelector('.card.mb-4 #event-scrollbar .card[style*="border: 2px solid"]');
+                            var scrollbar = document.getElementById('event-scrollbar');
+                            if (current && scrollbar) {
+                                scrollbar.scrollLeft = current.offsetLeft - 24;
+                            } else if (scrollbar) {
+                                scrollbar.scrollLeft = scrollbar.scrollWidth;
+                            }
+                        });
+                    </script>
                 {% else %}
-                    <p class="text-muted mb-0">今日暂无考勤事件</p>
+                    <p class="text-muted mb-0">暂无考勤事件</p>
                 {% endif %}
             </div>
         </div>
@@ -74,27 +96,60 @@
     <div class="col-md-12">
         <div class="card">
             <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-clipboard-list me-2"></i>最近请假申请
-                </h5>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5>最近请假申请</h5>
+                    <a href="{% url 'leave_request_list' %}" class="btn btn-link">查看全部</a>
+                </div>
             </div>
             <div class="card-body">
                 {% if recent_leave_requests %}
-                    <div class="list-group">
-                        {% for request in recent_leave_requests %}
-                            <a href="{% url 'approve_leave_request' request.leave_request_id %}" class="list-group-item list-group-item-action">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <h6 class="mb-1">{{ request.enrollment.student.stu_name }} - {{ request.event.course.course_name }}</h6>
-                                        <small class="text-muted">{{ request.submit_time }}</small>
+                    <ul class="list-group">
+                        {% for req in recent_leave_requests %}
+                            {% if req.approval_status == 1 %}
+                            <li class="list-group-item">
+                                <a href="{% url 'approve_leave_request' req.leave_request_id %}" class="text-decoration-none">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1">{{ req.enrollment.student.stu_name }}</h6>
+                                            <small class="text-muted">{{ req.event.course.course_name }} - {{ req.event.event_date }}</small>
+                                        </div>
+                                        <span class="badge bg-warning text-dark">待审批</span>
                                     </div>
-                                    <span class="badge bg-warning rounded-pill">待审批</span>
-                                </div>
-                            </a>
+                                    <div class="mt-1 text-muted">原因：{{ req.reason }}</div>
+                                </a>
+                            </li>
+                            {% endif %}
+                        {% empty %}
+                            <li class="list-group-item text-muted">暂无待审批申请</li>
                         {% endfor %}
-                    </div>
+                    </ul>
                 {% else %}
                     <p class="text-muted mb-0">暂无请假申请</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 我的课程 -->
+    <div class="col-md-12">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-book me-2"></i>我的课程
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if courses %}
+                    <ul class="list-group">
+                        {% for course in courses %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <a href="{% url 'course_detail' course.course_id %}">{{ course.course_name }}</a>
+                                <span class="badge bg-info rounded-pill">{{ course.course_id }}</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted mb-0">暂无课程</p>
                 {% endif %}
             </div>
         </div>

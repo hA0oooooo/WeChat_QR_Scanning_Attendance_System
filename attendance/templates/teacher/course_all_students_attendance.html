@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ course.course_name }} - 全体学生考勤记录{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>{{ course.course_name }} - 全体学生考勤记录</h2>
+            <p class="text-muted">
+                课程编号：{{ course.course_id }} | 
+                教师：{{ course.teacher.teacher_name }}
+            </p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col">
+            <div class="card">
+                <div class="card-body">
+                    <div class="mb-2">
+                        <strong>图例：</strong>
+                        <span class="me-2"><span style="font-size:1.2em;">🟢</span> 出勤</span>
+                        <span class="me-2"><span style="font-size:1.2em;">🟡</span> 请假</span>
+                        <span class="me-2"><span style="font-size:1.2em;">🔴</span> 缺勤</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th rowspan="2" class="align-middle">学号</th>
+                                    <th rowspan="2" class="align-middle">姓名</th>
+                                    <th rowspan="2" class="align-middle">专业</th>
+                                    <th rowspan="2" class="align-middle">院系</th>
+                                    <th colspan="{{ events|length }}" class="text-center">考勤记录</th>
+                                    <th rowspan="2" class="align-middle">出勤率</th>
+                                </tr>
+                                <tr>
+                                    {% for event in events %}
+                                    <th class="text-center">{{ event.event_date|date:"m-d" }}</th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for student_data in students_attendance %}
+                                <tr>
+                                    <td>{{ student_data.student.stu_id }}</td>
+                                    <td>{{ student_data.student.stu_name }}</td>
+                                    <td>{{ student_data.student.major.major_name }}</td>
+                                    <td>{{ student_data.student.major.department.dept_name }}</td>
+                                    {% for record in student_data.attendance_list %}
+                                    <td class="text-center">
+                                        {% if record.status == 'present' %}
+                                            <span style="font-size:1.2em;">🟢</span>
+                                        {% elif record.status == 'leave' %}
+                                            <span style="font-size:1.2em;">🟡</span>
+                                        {% else %}
+                                            <span style="font-size:1.2em;">🔴</span>
+                                        {% endif %}
+                                    </td>
+                                    {% endfor %}
+                                    <td class="text-center">{{ student_data.attendance_rate }}%</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col">
+            <a href="{% url 'course_detail' course.course_id %}" class="btn btn-secondary">
+                返回课程详情
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %} 

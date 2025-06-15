@@ -9,6 +9,9 @@ from .models import (
 )
 from django.utils import timezone
 from datetime import date, time, timedelta, datetime
+import hashlib
+from attendance.services.wechat_service import WeChatService
+from unittest.mock import patch
 
 class AttendanceSystemTest(TestCase):
     def setUp(self):
@@ -33,37 +36,66 @@ class AttendanceSystemTest(TestCase):
             scan_end_time=time(23, 59),  # 全天结束
             event_status=1
         )
+        # 初始化微信服务
+        self.wechat_service = WeChatService()
 
-    def test_scan_qr_code(self):
+    def _generate_signature(self, timestamp, nonce):
+        """生成微信签名"""
+        token = self.wechat_service.token
+        temp_list = [token, timestamp, nonce]
+        temp_list.sort()
+        temp_str = ''.join(temp_list)
+        return hashlib.sha1(temp_str.encode('utf-8')).hexdigest()
+
+    @patch('attendance.services.wechat_service.WeChatService.send_template_message', return_value={'errcode': 0, 'errmsg': 'ok'})
+    def test_scan_qr_code(self, mock_send):
         """测试扫码签到"""
         self.client.force_login(self.student_user)
-        # 模拟扫码签到请求
+        timestamp = '1234567890'
+        nonce = 'test_nonce'
+        signature = self._generate_signature(timestamp, nonce)
         response = self.client.post('/api/scan-qr/', {
             'qr_code': str(self.event.event_id),
-            'student_openid': self.student.openid
+            'student_id': self.student.stu_id,
+            'openid': self.student.openid,
+            'signature': signature,
+            'timestamp': timestamp,
+            'nonce': nonce
         })
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertTrue(data['success'])
         self.assertEqual(data['message'], '签到成功')
 
-    def test_duplicate_scan(self):
+    @patch('attendance.services.wechat_service.WeChatService.send_template_message', return_value={'errcode': 0, 'errmsg': 'ok'})
+    def test_duplicate_scan(self, mock_send):
         """测试重复扫码"""
         self.client.force_login(self.student_user)
+        timestamp = '1234567890'
+        nonce = 'test_nonce'
+        signature = self._generate_signature(timestamp, nonce)
         # 第一次扫码
         self.client.post('/api/scan-qr/', {
             'qr_code': str(self.event.event_id),
-            'student_openid': self.student.openid
+            'student_id': self.student.stu_id,
+            'openid': self.student.openid,
+            'signature': signature,
+            'timestamp': timestamp,
+            'nonce': nonce
         })
         # 第二次扫码
         response = self.client.post('/api/scan-qr/', {
             'qr_code': str(self.event.event_id),
-            'student_openid': self.student.openid
+            'student_id': self.student.stu_id,
+            'openid': self.student.openid,
+            'signature': signature,
+            'timestamp': timestamp,
+            'nonce': nonce
         })
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 200)
         data = response.json()
-        self.assertIn('error', data)
-        self.assertEqual(data['error'], '已经签到过了')
+        self.assertTrue(data['success'])
+        self.assertEqual(data['message'], '您已经签到成功，无需重复签到')
 
     def test_out_of_time(self):
         """测试超出考勤时间扫码"""
@@ -72,14 +104,21 @@ class AttendanceSystemTest(TestCase):
         self.event.scan_start_time = time(6, 0)
         self.event.scan_end_time = time(7, 0)
         self.event.save()
+        timestamp = '1234567890'
+        nonce = 'test_nonce'
+        signature = self._generate_signature(timestamp, nonce)
         response = self.client.post('/api/scan-qr/', {
             'qr_code': str(self.event.event_id),
-            'student_openid': self.student.openid
+            'student_id': self.student.stu_id,
+            'openid': self.student.openid,
+            'signature': signature,
+            'timestamp': timestamp,
+            'nonce': nonce
         })
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 200)
         data = response.json()
-        self.assertIn('error', data)
-        self.assertEqual(data['error'], '不在考勤时间范围内')
+        self.assertFalse(data['success'])
+        self.assertEqual(data['message'], '不在签到时间范围内')
 
 class TeacherViewsTest(TestCase):
     def setUp(self):

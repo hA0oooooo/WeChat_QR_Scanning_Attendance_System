@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+
+{% block title %}学生仪表盘 - 微信扫码考勤系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- 学生信息 -->
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-user me-2"></i>学生信息
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <i class="fas fa-user-circle fa-5x text-primary"></i>
+                </div>
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">学号</span>
+                            <span class="fw-bold">{{ request.user.username }}</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">姓名</span>
+                            <span class="fw-bold">{{ request.user.student.stu_name }}</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">专业</span>
+                            <span class="fw-bold">{{ request.user.student.major.major_name }}</span>
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">院系</span>
+                            <span class="fw-bold">{{ request.user.student.major.dept.dept_name }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 今日考勤记录 -->
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-calendar-check me-2"></i>今日考勤
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if today_attendance %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>课程</th>
+                                    <th>状态</th>
+                                    <th>扫码时间</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for att in today_attendance %}
+                                <tr>
+                                    <td>{{ att.event.course.course_name }}</td>
+                                    <td>
+                                        {% if att.status == 1 %}
+                                        <span class="badge bg-success">出勤</span>
+                                        {% elif att.status == 2 %}
+                                        <span class="badge bg-danger">缺勤</span>
+                                        {% else %}
+                                        <span class="badge bg-warning">请假</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ att.scan_time|default:"-" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted mb-0">今日暂无考勤记录</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- 最近请假记录 -->
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-clipboard-list me-2"></i>最近请假记录
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if recent_leave_requests %}
+                    <div class="list-group">
+                        {% for request in recent_leave_requests %}
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1">{{ request.event.course.course_name }}</h6>
+                                        <small class="text-muted">{{ request.submit_time }}</small>
+                                    </div>
+                                    <span class="badge bg-info rounded-pill">
+                                        {% if request.approval_status == 1 %}待审批{% elif request.approval_status == 2 %}已通过{% else %}已拒绝{% endif %}
+                                    </span>
+                                </div>
+                                <div class="mt-1 text-muted">原因：{{ request.reason }}</div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted mb-0">暂无请假记录</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -8,19 +8,20 @@ from django.http import HttpResponse
 @login_required
 def student_dashboard(request):
     """学生仪表盘"""
-    # 获取今日考勤记录
+    # 获取学生对象
+    student = Student.objects.get(openid=request.user.username)
     today = timezone.now().date()
+    # 获取今日所有考勤记录（多门课）
     today_attendance = Attendance.objects.filter(
-        enrollment__student__openid=request.user.username,
+        enrollment__student=student,
         event__event_date=today
-    ).first()
-    
+    ).select_related('event__course')
     # 获取最近的请假记录
     recent_leave_requests = LeaveRequest.objects.filter(
-        enrollment__student__openid=request.user.username
-    ).order_by('-submit_time')[:5]
-    
+        enrollment__student=student
+    ).select_related('event__course').order_by('-submit_time')[:5]
     context = {
+        'student': student,
         'today_attendance': today_attendance,
         'recent_leave_requests': recent_leave_requests
     }
@@ -62,6 +63,10 @@ def submit_leave_request(request):
             return redirect('submit_leave_request')
         try:
             event = AttendanceEvent.objects.get(event_id=event_id)
+            # 禁止为过去的考勤事件申请请假
+            if event.event_date < timezone.now().date():
+                messages.error(request, '不能为已过去的课程申请请假')
+                return redirect('submit_leave_request')
             enrollment = Enrollment.objects.get(student__openid=request.user.username, course=event.course)
             LeaveRequest.objects.create(
                 enrollment=enrollment,
