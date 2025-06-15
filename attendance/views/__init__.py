@@ -20,7 +20,9 @@ from .teacher_views import (
     manage_attendance_events,
     toggle_event_status,
     event_qr_code,
-    event_detail
+    event_detail,
+    student_course_attendance,
+    course_all_students_attendance
 )
 
 from .admin_views import (
@@ -41,22 +43,26 @@ from ..models import Attendance, Student, Teacher, AttendanceEvent, Enrollment
 from django.http import JsonResponse, HttpResponse
 import qrcode
 from io import BytesIO
+from attendance.services.wechat_service import WeChatService
 
 def index(request):
     """首页视图：登录后根据用户类型跳转到对应仪表盘"""
     if not request.user.is_authenticated:
         return redirect('login')
-    # 管理员
-    if request.user.is_superuser or (hasattr(request.user, 'is_staff') and request.user.is_staff):
+    # 超级管理员
+    if request.user.is_superuser:
         return redirect('admin_dashboard')
     # 教师
-    if Teacher.objects.filter(teacher_id=request.user.username).exists():
+    if hasattr(request.user, 'teacher') or request.user.is_staff:
         return redirect('teacher_dashboard')
-    # 学生
-    if Student.objects.filter(stu_id=request.user.username).exists():
+    # 学生（更稳妥的判断）
+    from attendance.models import Student
+    if Student.objects.filter(openid=request.user.username).exists():
         return redirect('student_dashboard')
-    # 其他用户类型
-    return HttpResponse("登录成功，欢迎进入系统！")
+    # 兜底：强制登出并提示
+    logout(request)
+    messages.error(request, '用户身份异常，请重新登录。')
+    return redirect('login')
 
 def login_view(request):
     """登录视图"""
@@ -84,66 +90,32 @@ def logout_view(request):
     return redirect('login')
 
 def scan_qr_code(request):
-    """处理微信扫码签到请求"""
-    from django.http import JsonResponse
-    from django.utils import timezone
-    from datetime import datetime, time
-    from ..models import AttendanceEvent, Attendance, Student, Enrollment
-
+    """处理微信扫码考勤请求"""
     if request.method != 'POST':
-        return JsonResponse({'error': '只支持POST请求'}, status=405)
+        return JsonResponse({'success': False, 'message': '仅支持POST请求'})
 
-    try:
-        # 获取请求参数
-        qr_code = request.POST.get('qr_code')
-        student_openid = request.POST.get('student_openid')
+    # 获取请求参数
+    qr_code = request.POST.get('qr_code')
+    student_id = request.POST.get('student_id')
+    openid = request.POST.get('openid')
+    signature = request.POST.get('signature')
+    timestamp = request.POST.get('timestamp')
+    nonce = request.POST.get('nonce')
 
-        if not qr_code or not student_openid:
-            return JsonResponse({'error': '缺少必要参数'}, status=400)
+    # 验证必要参数
+    if not all([qr_code, student_id, openid, signature, timestamp, nonce]):
+        return JsonResponse({'success': False, 'message': '缺少必要参数'})
 
-        # 获取考勤事件
-        try:
-            event = AttendanceEvent.objects.get(event_id=qr_code)
-        except AttendanceEvent.DoesNotExist:
-            return JsonResponse({'error': '无效的二维码'}, status=400)
+    # 初始化微信服务
+    wechat_service = WeChatService()
 
-        # 获取学生信息
-        try:
-            student = Student.objects.get(openid=student_openid)
-        except Student.DoesNotExist:
-            return JsonResponse({'error': '未找到学生信息'}, status=400)
+    # 验证签名
+    if not wechat_service.verify_signature(signature, timestamp, nonce):
+        return JsonResponse({'success': False, 'message': '签名验证失败'})
 
-        # 检查是否已选课
-        try:
-            enrollment = Enrollment.objects.get(student=student, course=event.course)
-        except Enrollment.DoesNotExist:
-            return JsonResponse({'error': '未选修该课程'}, status=400)
-
-        # 检查是否重复扫码
-        if Attendance.objects.filter(enrollment=enrollment, event=event).exists():
-            return JsonResponse({'error': '已经签到过了'}, status=400)
-
-        # 检查是否在考勤时间范围内
-        current_time = timezone.now().time()
-        if current_time < event.scan_start_time or current_time > event.scan_end_time:
-            return JsonResponse({'error': '不在考勤时间范围内'}, status=400)
-
-        # 创建考勤记录
-        attendance = Attendance.objects.create(
-            enrollment=enrollment,
-            event=event,
-            scan_time=timezone.now(),
-            status=1  # 1表示出勤
-        )
-
-        return JsonResponse({
-            'success': True,
-            'message': '签到成功',
-            'attendance_id': attendance.attend_id
-        })
-
-    except Exception as e:
-        return JsonResponse({'error': f'系统错误: {str(e)}'}, status=500)
+    # 处理扫码考勤
+    result = wechat_service.handle_scan_qr(qr_code, student_id, openid)
+    return JsonResponse(result)
 
 def check_attendance(request):
     from django.http import JsonResponse

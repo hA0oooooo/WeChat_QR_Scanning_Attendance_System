@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ student.stu_name }} - {{ course.course_name }} 考勤记录{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>{{ student.stu_name }} - {{ course.course_name }} 考勤记录</h2>
+            <p class="text-muted">
+                学号：{{ student.stu_id }} | 
+                专业：{{ student.major.major_name }} | 
+                院系：{{ student.major.department.dept_name }}
+            </p>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">考勤统计</h5>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <p>总考勤次数：{{ total_events }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <p>出勤次数：{{ present_count }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <p>出勤率：{{ attendance_rate }}%</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col">
+            <div class="mb-2">
+                <strong>图例：</strong>
+                <span class="me-2"><span style="font-size:1.2em;">🟢</span> 出勤</span>
+                <span class="me-2"><span style="font-size:1.2em;">🟡</span> 请假</span>
+                <span class="me-2"><span style="font-size:1.2em;">🔴</span> 缺勤</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">详细考勤记录</h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>日期</th>
+                                    <th>状态</th>
+                                    <th>签到时间</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for record in attendance_list %}
+                                <tr>
+                                    <td>{{ record.event_date|date:"Y-m-d" }}</td>
+                                    <td>
+                                        {% if record.status == 'present' %}
+                                            <span style="font-size:1.2em;">🟢</span>
+                                        {% elif record.status == 'leave' %}
+                                            <span style="font-size:1.2em;">🟡</span>
+                                        {% else %}
+                                            <span style="font-size:1.2em;">🔴</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if record.scan_time %}
+                                            {{ record.scan_time|date:"H:i:s" }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col">
+            <a href="{% url 'course_detail' course.course_id %}" class="btn btn-secondary">
+                返回课程详情
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -25,14 +25,17 @@ def login_view(request):
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
+        print(f"尝试登录: username={username}")  # 调试信息
         user = authenticate(request, username=username, password=password)
         if user is not None:
+            print(f"用户认证成功: {user.username}, is_staff={user.is_staff}, is_teacher={hasattr(user, 'teacher')}")  # 调试信息
             login(request, user)
             log_activity(user, '用户登录', True)
             return redirect('index')
         else:
+            print(f"用户认证失败: username={username}")  # 调试信息
             messages.error(request, '用户名或密码错误')
-    return render(request, 'common/login.html')
+    return render(request, 'login.html')
 
 def logout_view(request):
     """登出视图"""

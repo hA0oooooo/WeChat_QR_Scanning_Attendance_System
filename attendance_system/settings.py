@@ -26,7 +26,7 @@ SECRET_KEY = "django-insecure-7vn11luew-ejuks$7svq1j4eo+!qiy@63(z(_cf1_8r-s5-v!6
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -134,3 +134,18 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/login/'
+
+# 微信配置
+WECHAT_APPID = 'your_appid_here'
+WECHAT_SECRET = 'your_secret_here'
+WECHAT_TOKEN = 'your_token_here'
+WECHAT_ENCODING_AES_KEY = 'your_encoding_aes_key_here'
+WECHAT_ATTENDANCE_TEMPLATE_ID = 'your_template_id_here'
+
+# 缓存配置
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+    }
+}

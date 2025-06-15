@@ -33,6 +33,7 @@ def generate_qr_code(event_id):
         box_size=10,
         border=4,
     )
+    # 只生成事件ID
     qr.add_data(str(event_id))
     qr.make(fit=True)
     
@@ -62,8 +63,14 @@ def verify_qr_code(qr_code, student_openid):
             course=event.course
         )
         
-        # 检查是否已经签到
-        if Attendance.objects.filter(enrollment=enrollment, event=event).exists():
+        # 检查是否已经签到，并且确保状态是出勤
+        existing_attendance = Attendance.objects.filter(
+            enrollment=enrollment,
+            event=event,
+            status=STATUS_PRESENT
+        ).first()
+        
+        if existing_attendance:
             return False, "已经签到过了"
         
         # 记录考勤
