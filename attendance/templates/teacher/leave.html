@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>请假申请列表</h1>
+<table class="table">
+  <thead>
+    <tr>
+      <th>申请ID</th>
+      <th>学生</th>
+      <th>课程</th>
+      <th>原因</th>
+      <th>提交时间</th>
+      <th>审批状态</th>
+      <th>操作</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for req in leave_requests %}
+      <tr>
+        <td>{{ req.leave_request_id }}</td>
+        <td>{{ req.enrollment.student.stu_name }}</td>
+        <td>{{ req.event.course.course_name }}</td>
+        <td>{{ req.reason }}</td>
+        <td>{{ req.submit_time|date:"Y-m-d H:i" }}</td>
+        <td>
+          {% if req.approval_status == 1 %}
+            <span class="badge bg-warning">待审批</span>
+          {% elif req.approval_status == 2 %}
+            <span class="badge bg-success">已批准</span>
+          {% else %}
+            <span class="badge bg-danger">已拒绝</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if req.approval_status == 1 %}
+            <a href="{% url 'approve_leave_request' req.leave_request_id %}" class="btn btn-sm btn-primary">审批</a>
+          {% endif %}
+        </td>
+      </tr>
+    {% empty %}
+      <tr>
+        <td colspan="7" class="text-center">暂无请假申请</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %} 

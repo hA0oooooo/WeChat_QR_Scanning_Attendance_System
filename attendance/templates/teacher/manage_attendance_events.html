@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+
+{% block title %}考勤事件管理{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>考勤事件管理 - {{ course.course_name }}</h2>
+    
+    <div class="mb-4">
+        <a href="{% url 'create_attendance_event' course.course_id %}" class="btn btn-primary">
+            创建新考勤事件
+        </a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>事件ID</th>
+                    <th>开始时间</th>
+                    <th>结束时间</th>
+                    <th>考勤日期</th>
+                    <th>状态</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for event in events %}
+                <tr>
+                    <td>{{ event.event_id }}</td>
+                    <td>{{ event.scan_start_time }}</td>
+                    <td>{{ event.scan_end_time }}</td>
+                    <td>{{ event.event_date|date:"Y-m-d" }}</td>
+                    <td>
+                        {% if event.event_status == 1 %}
+                        <span class="badge bg-success">有效</span>
+                        {% else %}
+                        <span class="badge bg-danger">无效</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-warning toggle-status" 
+                                data-event-id="{{ event.event_id }}"
+                                data-current-status="{{ event.event_status }}">
+                            切换状态
+                        </button>
+                        <a href="{% url 'view_attendance_results' event.event_id %}" 
+                           class="btn btn-sm btn-info">
+                            查看结果
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center">暂无考勤事件</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const toggleButtons = document.querySelectorAll('.toggle-status');
+    
+    toggleButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const eventId = this.dataset.eventId;
+            const currentStatus = this.dataset.currentStatus;
+            
+            fetch(`/teacher/event/${eventId}/toggle/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    current_status: currentStatus
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('操作失败：' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('操作失败，请重试');
+            });
+        });
+    });
+    
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+</script>
+{% endblock %}
+{% endblock %} 

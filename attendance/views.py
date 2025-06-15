@@ -1,12 +1,13 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_http_methods
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from .models import SystemSettings, PermissionSettings, SystemLog, AttendanceEvent, AttendanceRecord, Course, Student, Teacher
-from .utils import log_activity
+from .utils import log_activity, generate_qr_code, verify_qr_code, get_attendance_status
+import json
 
 def index(request):
     """首页视图"""
@@ -175,15 +176,21 @@ def admin_dashboard(request):
 
 @login_required
 def scan_qr_code(request):
-    """扫描二维码"""
+    """处理扫码请求"""
+    if not hasattr(request.user, 'student'):
+        raise PermissionDenied("只有学生可以访问此页面")
+    
     if request.method == 'POST':
-        qr_code = request.POST.get('qr_code')
         try:
-            event = AttendanceEvent.objects.get(qr_code=qr_code, is_active=True)
-            # 处理考勤逻辑
-            return JsonResponse({'success': True})
-        except AttendanceEvent.DoesNotExist:
-            return JsonResponse({'success': False, 'message': '无效的二维码'})
+            data = json.loads(request.body)
+            qr_code = data.get('qr_code')
+            
+            success, message = verify_qr_code(qr_code, request.user.username)
+            return JsonResponse({'success': success, 'message': message})
+            
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+    
     return JsonResponse({'success': False, 'message': '无效的请求方法'})
 
 @login_required
@@ -212,35 +219,70 @@ def student_courses(request):
 
 @login_required
 def student_attendance(request):
-    """学生考勤记录"""
+    """学生查看考勤记录"""
     if not hasattr(request.user, 'student'):
         raise PermissionDenied("只有学生可以访问此页面")
-    records = AttendanceRecord.objects.filter(student=request.user.student).order_by('-timestamp')
-    return render(request, 'student/attendance.html', {'records': records})
+    
+    student = request.user.student
+    attendance_records = AttendanceRecord.objects.filter(
+        enrollment__student=student
+    ).select_related(
+        'event__course',
+        'enrollment'
+    ).order_by('-event__event_date', '-event__scan_start_time')
+    
+    return render(request, 'student/attendance.html', {
+        'attendance_records': attendance_records
+    })
 
 @login_required
 def teacher_courses(request):
-    """教师课程列表"""
-    if not hasattr(request.user, 'teacher'):
-        raise PermissionDenied("只有教师可以访问此页面")
-    courses = request.user.teacher.courses.all()
-    return render(request, 'teacher/courses.html', {'courses': courses})
+    return HttpResponse("教师课程页-占位")
 
 @login_required
 def create_attendance_event(request):
     """创建考勤事件"""
     if not hasattr(request.user, 'teacher'):
         raise PermissionDenied("只有教师可以访问此页面")
+    
     if request.method == 'POST':
-        course_id = request.POST.get('course')
-        course = get_object_or_404(Course, id=course_id, teacher=request.user.teacher)
-        event = AttendanceEvent.objects.create(
-            course=course,
-            teacher=request.user.teacher,
-            is_active=True
-        )
-        return JsonResponse({'success': True, 'qr_code': event.qr_code})
-    courses = request.user.teacher.courses.all()
+        try:
+            data = json.loads(request.body)
+            course_id = data.get('course_id')
+            event_date = data.get('event_date')
+            scan_start_time = data.get('scan_start_time')
+            scan_end_time = data.get('scan_end_time')
+            
+            course = get_object_or_404(Course, course_id=course_id)
+            teacher = request.user.teacher
+            
+            # 验证教师是否教授该课程
+            if not course.teachingassignment_set.filter(teacher=teacher).exists():
+                return JsonResponse({'success': False, 'message': '您不是该课程的教师'})
+            
+            # 创建考勤事件
+            event = AttendanceEvent.objects.create(
+                course=course,
+                event_date=event_date,
+                scan_start_time=scan_start_time,
+                scan_end_time=scan_end_time,
+                event_status=1
+            )
+            
+            # 生成二维码
+            qr_code = generate_qr_code(event.event_id)
+            
+            return JsonResponse({
+                'success': True,
+                'event_id': event.event_id,
+                'qr_code': qr_code
+            })
+            
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+    
+    # GET请求显示创建考勤页面
+    courses = Course.objects.filter(teachingassignment__teacher=request.user.teacher)
     return render(request, 'teacher/create_attendance.html', {'courses': courses})
 
 @login_required
@@ -248,12 +290,29 @@ def view_attendance_results(request, event_id):
     """查看考勤结果"""
     if not hasattr(request.user, 'teacher'):
         raise PermissionDenied("只有教师可以访问此页面")
-    event = get_object_or_404(AttendanceEvent, id=event_id, teacher=request.user.teacher)
-    records = AttendanceRecord.objects.filter(event=event)
-    return render(request, 'teacher/attendance_results.html', {
+    
+    event = get_object_or_404(AttendanceEvent, event_id=event_id)
+    teacher = request.user.teacher
+    
+    # 验证教师是否教授该课程
+    if not event.course.teachingassignment_set.filter(teacher=teacher).exists():
+        raise PermissionDenied("您不是该课程的教师")
+    
+    # 获取考勤统计
+    stats = get_attendance_status(event_id)
+    
+    # 获取详细考勤记录
+    attendance_records = event.attendance_set.all().select_related(
+        'enrollment__student'
+    ).order_by('enrollment__student__stu_id')
+    
+    context = {
         'event': event,
-        'records': records
-    })
+        'stats': stats,
+        'attendance_records': attendance_records
+    }
+    
+    return render(request, 'teacher/attendance_results.html', context)
 
 @login_required
 def manage_students(request):
@@ -281,19 +340,16 @@ def manage_courses(request):
 
 @login_required
 def check_attendance(request):
-    """检查考勤"""
-    if request.method == 'POST':
-        event_id = request.POST.get('event_id')
-        student_id = request.POST.get('student_id')
-        try:
-            event = AttendanceEvent.objects.get(id=event_id, is_active=True)
-            student = Student.objects.get(id=student_id)
-            record = AttendanceRecord.objects.create(
-                event=event,
-                student=student,
-                status='present'
-            )
-            return JsonResponse({'success': True})
-        except (AttendanceEvent.DoesNotExist, Student.DoesNotExist):
-            return JsonResponse({'success': False, 'message': '无效的考勤事件或学生'})
-    return JsonResponse({'success': False, 'message': '无效的请求方法'}) 
+    return HttpResponse("考勤检查API-占位")
+
+def teacher_profile(request):
+    return HttpResponse("教师信息页-占位")
+
+def student_profile(request):
+    return HttpResponse("学生信息页-占位")
+
+def student_leave(request):
+    return HttpResponse("学生请假页-占位")
+
+def course_detail(request, course_id):
+    return HttpResponse(f"课程详情页-占位: {course_id}") 

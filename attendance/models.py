@@ -38,7 +38,7 @@ LEAVE_STATUS_CHOICES = [
 
 class Department(models.Model):
     """院系信息表"""
-    dept_id = models.PositiveSmallIntegerField(primary_key=True, auto_created=True, verbose_name='院系ID')
+    dept_id = models.AutoField(primary_key=True, verbose_name='院系ID')
     dept_name = models.CharField(max_length=50, unique=True, null=False, verbose_name='院系名')
 
     class Meta:
@@ -51,7 +51,7 @@ class Department(models.Model):
 
 class Major(models.Model):
     """专业信息表"""
-    major_id = models.PositiveSmallIntegerField(primary_key=True, auto_created=True, verbose_name='专业ID')
+    major_id = models.AutoField(primary_key=True, verbose_name='专业ID')
     major_name = models.CharField(max_length=50, unique=True, null=False, verbose_name='专业名')
     dept = models.ForeignKey(Department, on_delete=models.RESTRICT, db_column='dept_id', null=False, verbose_name='所属院系')
 
@@ -81,9 +81,10 @@ class Student(models.Model):
 
 class Course(models.Model):
     """课程信息表"""
-    course_id = models.CharField(max_length=12, primary_key=True, verbose_name='课程代码')
-    course_name = models.CharField(max_length=50, null=False, verbose_name='课程名称')
+    course_id = models.CharField(max_length=20, primary_key=True, verbose_name='课程ID')
+    course_name = models.CharField(max_length=100, verbose_name='课程名称')
     dept = models.ForeignKey(Department, on_delete=models.RESTRICT, db_column='dept_id', null=False, verbose_name='开课院系')
+    credit = models.PositiveSmallIntegerField(default=0, verbose_name='学分')
 
     class Meta:
         db_table = 'Course'
@@ -181,7 +182,7 @@ class LeaveRequest(models.Model):
 
 class TeachingAssignment(models.Model):
     """教学安排表"""
-    assignment_id = models.PositiveIntegerField(primary_key=True, auto_created=True, verbose_name='教学安排ID')
+    assignment_id = models.AutoField(primary_key=True, verbose_name='教学安排ID')
     teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, db_column='teacher_id', verbose_name='教师')
     course = models.ForeignKey(Course, on_delete=models.CASCADE, db_column='course_id', verbose_name='课程')
 

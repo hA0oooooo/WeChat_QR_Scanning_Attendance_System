@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block title %}签到结果{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card mt-5">
+            <div class="card-body text-center">
+                {% if result == 'success' %}
+                    <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
+                    <h3 class="mb-3">{{ message }}</h3>
+                {% elif result == 'repeat' %}
+                    <i class="fas fa-info-circle fa-4x text-warning mb-3"></i>
+                    <h3 class="mb-3">{{ message }}</h3>
+                {% else %}
+                    <i class="fas fa-times-circle fa-4x text-danger mb-3"></i>
+                    <h3 class="mb-3">{{ message }}</h3>
+                {% endif %}
+                <a href="/" class="btn btn-primary mt-4">返回首页</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
