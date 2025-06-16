@@ -82,12 +82,13 @@
                             </thead>
                             <tbody>
                                 {% for event in events %}
+                                {% if event.event_date|date:"Y-m-d" < "2025-06-16" or event.event_date|date:"Y-m-d" == "2025-06-16" %}
                                 <tr>
                                     <td>{{ event.event_date|date:"Y-m-d" }}</td>
                                     <td>{{ event.scan_start_time|time:"H:i:s" }}</td>
                                     <td>{{ event.scan_end_time|time:"H:i:s" }}</td>
                                     <td>
-                                        {% if event.event_status == 1 %}
+                                        {% if event.status == 1 %}
                                             <span class="badge bg-success">有效</span>
                                         {% else %}
                                             <span class="badge bg-danger">无效</span>
@@ -99,6 +100,19 @@
                                         </a>
                                     </td>
                                 </tr>
+                                {% else %}
+                                <tr class="text-muted">
+                                    <td>{{ event.event_date|date:"Y-m-d" }}</td>
+                                    <td>{{ event.scan_start_time|time:"H:i:s" }}</td>
+                                    <td>{{ event.scan_end_time|time:"H:i:s" }}</td>
+                                    <td>
+                                        <span class="badge bg-secondary">未开始</span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-secondary" disabled>查看详情</button>
+                                    </td>
+                                </tr>
+                                {% endif %}
                                 {% endfor %}
                             </tbody>
                         </table>

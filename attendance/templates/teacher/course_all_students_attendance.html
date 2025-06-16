@@ -33,11 +33,13 @@
                                     <th rowspan="2" class="align-middle">专业</th>
                                     <th rowspan="2" class="align-middle">院系</th>
                                     <th colspan="{{ events|length }}" class="text-center">考勤记录</th>
-                                    <th rowspan="2" class="align-middle">出勤率</th>
+                                    <th rowspan="2" class="align-middle">出勤率<br><small class='text-muted' style='font-weight:normal'>(注：不含6月16日)</small></th>
                                 </tr>
                                 <tr>
                                     {% for event in events %}
+                                    {% if event.event_date|date:"Y-m-d" <= "2025-06-16" %}
                                     <th class="text-center">{{ event.event_date|date:"m-d" }}</th>
+                                    {% endif %}
                                     {% endfor %}
                                 </tr>
                             </thead>
@@ -49,6 +51,7 @@
                                     <td>{{ student_data.student.major.major_name }}</td>
                                     <td>{{ student_data.student.major.department.dept_name }}</td>
                                     {% for record in student_data.attendance_list %}
+                                    {% if record.event_date|date:"Y-m-d" <= "2025-06-16" %}
                                     <td class="text-center">
                                         {% if record.status == 'present' %}
                                             <span style="font-size:1.2em;">🟢</span>
@@ -58,8 +61,12 @@
                                             <span style="font-size:1.2em;">🔴</span>
                                         {% endif %}
                                     </td>
+                                    {% endif %}
                                     {% endfor %}
-                                    <td class="text-center">{{ student_data.attendance_rate }}%</td>
+                                    <td class="text-center">
+                                        {{ student_data.attendance_rate }}%<br>
+                                        <small class="text-muted" style="font-weight:normal">(不含6月16日)</small>
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>

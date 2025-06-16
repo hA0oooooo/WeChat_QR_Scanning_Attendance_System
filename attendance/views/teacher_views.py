@@ -11,7 +11,7 @@ from ..models import (
 import qrcode
 from io import BytesIO
 from django.conf import settings
-from datetime import datetime
+from datetime import datetime, date
 import urllib.parse
 
 @login_required
@@ -401,20 +401,19 @@ def course_all_students_attendance(request, course_id):
         student = enrollment.student
         student_attendance = []
         present_count = 0
-        
+        valid_events = [event for event in events if event.event_date < date(2025,6,16)]
         for event in events:
             record = attendance_map.get((student.stu_id, event.event_id))
             status = 'present' if record and record.status == STATUS_PRESENT else \
                     'leave' if record and record.status == STATUS_LEAVE else 'absent'
-            if status == 'present':
+            if status == 'present' and event.event_date < date(2025,6,16):
                 present_count += 1
             student_attendance.append({
                 'event_date': event.event_date,
                 'status': status,
                 'scan_time': record.scan_time if record else None
             })
-        
-        attendance_rate = (present_count / len(events) * 100) if events else 0
+        attendance_rate = (present_count / len(valid_events) * 100) if valid_events else 0
         students_attendance.append({
             'student': student,
             'attendance_list': student_attendance,
