@@ -247,7 +247,7 @@
             </div>
             <div class="card-body">
                 <div class="row text-center">
-                    {% with total=events_with_status|length %}
+                    {% with total_events=events_with_status|length %}
                     {% with present_count=0 leave_count=0 absent_count=0 %}
                         {% for item in events_with_status %}
                             {% if item.attendance.status == 1 %}
@@ -261,8 +261,8 @@
                         
                         <div class="col-md-3 col-6 mb-3">
                             <div class="p-3 bg-light rounded">
-                                <h4 class="text-info mb-1">{{ total }}</h4>
-                                <small class="text-muted">总课次</small>
+                                <h4 class="text-primary mb-1">{{ total_events }}</h4>
+                                <small class="text-muted">总考勤次数</small>
                             </div>
                         </div>
                         <div class="col-md-3 col-6 mb-3">
@@ -273,17 +273,16 @@
                         </div>
                         <div class="col-md-3 col-6 mb-3">
                             <div class="p-3 bg-light rounded">
-                                <h4 class="text-warning mb-1">{{ leave_count }}</h4>
+                                <h4 class="text-danger mb-1">{{ leave_count }}</h4>
                                 <small class="text-muted">请假次数</small>
                             </div>
                         </div>
                         <div class="col-md-3 col-6 mb-3">
                             <div class="p-3 bg-light rounded">
-                                <h4 class="text-danger mb-1">{{ absent_count }}</h4>
+                                <h4 class="text-warning mb-1">{{ absent_count }}</h4>
                                 <small class="text-muted">缺勤次数</small>
                             </div>
                         </div>
-                    {% endwith %}
                     {% endwith %}
                     {% endwith %}
                 </div>

@@ -1,23 +1,57 @@
 {% extends 'base.html' %}
 
-{% block title %}签到结果{% endblock %}
+{% block title %}签到结果 - 微信扫码考勤系统{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card mt-5">
-            <div class="card-body text-center">
-                {% if result == 'success' %}
-                    <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
-                    <h3 class="mb-3">{{ message }}</h3>
-                {% elif result == 'repeat' %}
-                    <i class="fas fa-info-circle fa-4x text-warning mb-3"></i>
-                    <h3 class="mb-3">{{ message }}</h3>
-                {% else %}
-                    <i class="fas fa-times-circle fa-4x text-danger mb-3"></i>
-                    <h3 class="mb-3">{{ message }}</h3>
-                {% endif %}
-                <a href="/" class="btn btn-primary mt-4">返回首页</a>
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card mt-5">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-check-circle me-2"></i>签到结果
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        {% if status == 'success' %}
+                            <i class="fas fa-check-circle text-success" style="font-size: 4rem;"></i>
+                        {% else %}
+                            <i class="fas fa-times-circle text-danger" style="font-size: 4rem;"></i>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted">课程</span>
+                                <span class="fw-bold">{{ event.course.course_name }}</span>
+                            </div>
+                        </div>
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted">学号</span>
+                                <span class="fw-bold">{{ student.stu_id }}</span>
+                            </div>
+                        </div>
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted">姓名</span>
+                                <span class="fw-bold">{{ student.stu_name }}</span>
+                            </div>
+                        </div>
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted">签到时间</span>
+                                <span class="fw-bold">{{ now|date:"Y-m-d H:i:s" }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert {% if status == 'success' %}alert-success{% else %}alert-danger{% endif %} mt-4">
+                        {{ message }}
+                    </div>
+                </div>
             </div>
         </div>
     </div>

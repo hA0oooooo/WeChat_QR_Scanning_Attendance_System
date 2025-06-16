@@ -9,8 +9,11 @@ from .views import (
     leave_request_list, approve_leave_request, teacher_profile,
     event_qr_code, event_detail,
     admin_dashboard, student_course_attendance,
-    course_all_students_attendance
+    course_all_students_attendance, wechat_views,
+    scan_qr_page,
+    event_attendance_records_api
 )
+from .views.wechat_notify import wechat_notify
 from django.contrib.auth.views import LogoutView
 
 urlpatterns = [
@@ -46,8 +49,12 @@ urlpatterns = [
     path('teacher/event/<int:event_id>/qr/', event_qr_code, name='event_qr_code'),
     path('teacher/event/<int:event_id>/results/', view_attendance_results, name='view_attendance_results'),
     path('teacher/event/<int:event_id>/detail/', event_detail, name='event_detail'),
+    path('teacher/event/<int:event_id>/records/', event_attendance_records_api, name='event_attendance_records_api'),
     path('teacher/leave-requests/', leave_request_list, name='leave_request_list'),
     path('teacher/leave-request/<int:leave_request_id>/approve/', approve_leave_request, name='approve_leave_request'),
     path('teacher/profile/', teacher_profile, name='teacher_profile'),
     path('logout/', LogoutView.as_view(next_page='login'), name='logout'),
+    path('wechat/get_openid/', wechat_views.get_openid, name='wechat_get_openid'),
+    path('wechat/notify/', wechat_notify, name='wechat_notify'),
+    path('scan-qr-page/', scan_qr_page, name='scan_qr_page'),
 ] 

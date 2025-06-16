@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from pathlib import Path
 import os
+from django.utils import timezone
+import datetime
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -136,11 +138,13 @@ LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/login/'
 
 # 微信配置
-WECHAT_APPID = 'your_appid_here'
-WECHAT_SECRET = 'your_secret_here'
-WECHAT_TOKEN = 'your_token_here'
-WECHAT_ENCODING_AES_KEY = 'your_encoding_aes_key_here'
-WECHAT_ATTENDANCE_TEMPLATE_ID = 'your_template_id_here'
+WECHAT_APPID = 'wxaeb26f03c78ad933'
+WECHAT_SECRET = 'dd3522db5dd417b4114bc8e69c07f092'
+WECHAT_TOKEN = 'mytesttoken'
+WECHAT_ENCODING_AES_KEY = ''  # 测试号不需要
+WECHAT_ATTENDANCE_TEMPLATE_ID = ''  # 测试号不需要
+# 新增：微信接口配置信息URL（如有用到，可在代码中引用）
+WECHAT_NOTIFY_URL = 'https://1hs09837827ey.vicp.fun/wechat/notify/'
 
 # 缓存配置
 CACHES = {
@@ -149,3 +153,13 @@ CACHES = {
         'LOCATION': 'unique-snowflake',
     }
 }
+
+# 统一伪造当前时间为2025-06-25 10:00:00（东八区）
+def fake_now():
+    return timezone.make_aware(datetime.datetime(2025, 6, 25, 10, 0, 0))
+
+timezone.now = fake_now
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://1hs09837827ey.vicp.fun",
+]

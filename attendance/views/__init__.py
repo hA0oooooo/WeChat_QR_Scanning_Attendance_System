@@ -24,7 +24,8 @@ from .teacher_views import (
     event_qr_code,
     event_detail,
     student_course_attendance,
-    course_all_students_attendance
+    course_all_students_attendance,
+    event_attendance_records_api
 )
 
 from .admin_views import (
@@ -35,6 +36,8 @@ from .admin_views import (
     manage_departments,
     manage_majors
 )
+
+from .wechat_notify import wechat_notify
 
 # 基础视图函数
 from django.shortcuts import render, redirect
@@ -144,22 +147,53 @@ def qr_code_view(request):
     return HttpResponse(image_stream, content_type='image/png')
 
 def scan_qr_page(request):
-    """扫码签到接口，GET方式，返回签到结果页面"""
+    """扫码签到接口，支持微信授权code换openid"""
+    import requests
+    from django.conf import settings
     event_id = request.GET.get('event_id')
     openid = request.GET.get('openid')
+    code = request.GET.get('code')
     context = {}
+    context['course_code'] = ''
+    context['course_name'] = ''
+    context['student_name'] = ''
+    context['student_id'] = ''
+    # 如果没有openid但有code，先换openid
+    if not openid and code:
+        appid = settings.WECHAT_APPID
+        secret = settings.WECHAT_SECRET
+        url = f'https://api.weixin.qq.com/sns/oauth2/access_token?appid={appid}&secret={secret}&code={code}&grant_type=authorization_code'
+        resp = requests.get(url)
+        data = resp.json()
+        openid = data.get('openid')
+        if openid:
+            # 换到openid后重定向到自身
+            import urllib.parse
+            params = {'event_id': event_id, 'openid': openid}
+            redirect_url = f"/scan-qr-page/?{urllib.parse.urlencode(params)}"
+            from django.shortcuts import redirect
+            return redirect(redirect_url)
+        else:
+            context['result'] = 'fail'
+            context['message'] = '微信授权失败，无法获取openid。'
+            return render(request, 'student/scan_result.html', context)
+    # 原有逻辑
     if not event_id or not openid:
         context['result'] = 'fail'
         context['message'] = '缺少参数，无法签到。'
         return render(request, 'student/scan_result.html', context)
     try:
         event = AttendanceEvent.objects.get(event_id=event_id)
+        context['course_code'] = event.course.course_id if hasattr(event.course, 'course_id') else ''
+        context['course_name'] = event.course.course_name if hasattr(event.course, 'course_name') else ''
     except AttendanceEvent.DoesNotExist:
         context['result'] = 'fail'
         context['message'] = '考勤事件不存在。'
         return render(request, 'student/scan_result.html', context)
     try:
         student = Student.objects.get(openid=openid)
+        context['student_name'] = student.stu_name if hasattr(student, 'stu_name') else ''
+        context['student_id'] = student.stu_id if hasattr(student, 'stu_id') else ''
     except Student.DoesNotExist:
         context['result'] = 'fail'
         context['message'] = '未找到学生信息。'
@@ -170,20 +204,21 @@ def scan_qr_page(request):
         context['result'] = 'fail'
         context['message'] = '未选修该课程，无法签到。'
         return render(request, 'student/scan_result.html', context)
-    # 检查时间
-    now = timezone.now().time()
+    now = timezone.now()
     if now < event.scan_start_time or now > event.scan_end_time:
-        return JsonResponse({'error': '不在考勤时间范围内，无法签到。'}, status=400)
-    # 检查是否已签到
+        context['result'] = 'fail'
+        context['message'] = '不在考勤时间范围内，无法签到。'
+        return render(request, 'student/scan_result.html', context)
     if Attendance.objects.filter(enrollment=enrollment, event=event).exists():
-        return JsonResponse({'error': '您已签到，无需重复操作。'}, status=400)
-    # 记录签到
-    Attendance.objects.create(
-        enrollment=enrollment,
-        event=event,
-        scan_time=timezone.now(),
-        status=1  # 1表示出勤
-    )
-    context['result'] = 'success'
-    context['message'] = '签到成功！'
+        context['result'] = 'repeat'
+        context['message'] = '您已签到，无需重复操作。'
+    else:
+        Attendance.objects.create(
+            enrollment=enrollment,
+            event=event,
+            scan_time=now,
+            status=1
+        )
+        context['result'] = 'success'
+        context['message'] = '签到成功！'
     return render(request, 'student/scan_result.html', context) 

@@ -130,10 +130,12 @@ class AttendanceEvent(models.Model):
     """考勤事件表"""
     event_id = models.AutoField(primary_key=True, verbose_name='考勤事件ID')
     course = models.ForeignKey(Course, on_delete=models.CASCADE, db_column='course_id', null=False, verbose_name='课程')
-    event_date = models.DateField(null=False, verbose_name='事件日期')
-    scan_start_time = models.TimeField(null=False, verbose_name='扫码有效开始时间')
-    scan_end_time = models.TimeField(null=False, verbose_name='扫码有效结束时间')
-    event_status = models.PositiveSmallIntegerField(default=1, null=False, verbose_name='二维码/事件状态：1-有效，2-无效')
+    event_date = models.DateField(null=False, verbose_name='考勤日期')
+    scan_start_time = models.DateTimeField(null=False, verbose_name='扫码开始时间')
+    scan_end_time = models.DateTimeField(null=False, verbose_name='扫码结束时间')
+    status = models.PositiveSmallIntegerField(default=1, null=False, verbose_name='考勤事件状态：1-有效，2-无效')
+    qr_code = models.CharField(max_length=255, null=True, blank=True, verbose_name='二维码内容')
+    qr_code_expire_time = models.DateTimeField(null=True, blank=True, verbose_name='二维码过期时间')
 
     class Meta:
         db_table = 'AttendanceEvent'
@@ -141,7 +143,7 @@ class AttendanceEvent(models.Model):
         verbose_name_plural = verbose_name
 
     def __str__(self):
-        return f"{self.course.course_name}-{self.event_date} {self.scan_start_time}"
+        return f"{self.course.course_name}-{self.event_date}"
 
 class Attendance(models.Model):
     """学生考勤记录表"""

@@ -12,14 +12,14 @@ import qrcode
 from io import BytesIO
 from django.conf import settings
 from datetime import datetime
+import urllib.parse
 
 @login_required
 def teacher_dashboard(request):
     """教师仪表盘"""
     # 获取教师对象 - 使用正确的关联关系
     teacher = request.user.teacher
-    # now = timezone.now()  # 注释掉真实时间
-    now = datetime(2025, 6, 23, 8, 0, 0)  # 演示用假时间
+    now = timezone.now()  # 使用真实当前时间
     today = now.date()
     # 获取今日考勤事件（多门课）
     today_events = AttendanceEvent.objects.filter(
@@ -107,7 +107,8 @@ def view_attendance_results(request, event_id):
         'total_students': total_students,
         'present_count': present_count,
         'absent_count': absent_count,
-        'leave_count': leave_count
+        'leave_count': leave_count,
+        'now': timezone.now()  # 添加当前时间到context
     }
     return render(request, 'teacher/attendance_results.html', context)
 
@@ -234,13 +235,57 @@ def toggle_event_status(request, event_id):
 
 @login_required
 def event_qr_code(request, event_id):
-    """生成考勤事件二维码，内容为事件ID"""
-    # 只生成事件ID作为二维码内容
-    img = qrcode.make(str(event_id))
-    buf = BytesIO()
-    img.save(buf, format='PNG')
-    image_stream = buf.getvalue()
-    return HttpResponse(image_stream, content_type='image/png')
+    """生成考勤事件二维码，内容为微信授权链接"""
+    try:
+        # 获取考勤事件
+        event = get_object_or_404(AttendanceEvent, event_id=event_id)
+        
+        # 微信授权链接参数
+        appid = 'wxaeb26f03c78ad933'
+        # 注意：redirect_uri必须与微信后台配置的域名完全一致
+        # 微信后台配置的域名是：hc3838f9.natappfree.cc
+        # 回调到scan-qr-page，并带上event_id参数
+        redirect_uri = f'https://1hs09837827ey.vicp.fun/scan-qr-page/?event_id={event_id}'
+        # 确保redirect_uri被正确编码
+        redirect_uri_enc = urllib.parse.quote(redirect_uri, safe='')
+        state = f'event_{event_id}'
+        
+        # 构建授权URL
+        auth_url = (
+            f'https://open.weixin.qq.com/connect/oauth2/authorize'
+            f'?appid={appid}'
+            f'&redirect_uri={redirect_uri_enc}'
+            f'&response_type=code'
+            f'&scope=snsapi_base'
+            f'&state={state}'
+            f'#wechat_redirect'
+        )
+        
+        # 打印详细的调试信息
+        print("=== 二维码生成调试信息 ===")
+        print(f"原始redirect_uri: {redirect_uri}")
+        print(f"编码后redirect_uri: {redirect_uri_enc}")
+        print(f"完整授权URL: {auth_url}")
+        print("=======================")
+        
+        # 生成二维码
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(auth_url)
+        qr.make(fit=True)
+        
+        img = qr.make_image(fill_color="black", back_color="white")
+        buf = BytesIO()
+        img.save(buf, format='PNG')
+        return HttpResponse(buf.getvalue(), content_type='image/png')
+        
+    except Exception as e:
+        print(f"生成二维码时出错: {str(e)}")  # 错误日志
+        return HttpResponse(f"生成二维码失败: {str(e)}", status=500)
 
 @login_required
 def event_detail(request, event_id):
@@ -382,4 +427,22 @@ def course_all_students_attendance(request, course_id):
         'events': events,
         'students_attendance': students_attendance
     }
-    return render(request, 'teacher/course_all_students_attendance.html', context) 
+    return render(request, 'teacher/course_all_students_attendance.html', context)
+
+def event_attendance_records_api(request, event_id):
+    """返回指定考勤事件的扫码记录（JSON）"""
+    try:
+        event = AttendanceEvent.objects.get(event_id=event_id)
+    except AttendanceEvent.DoesNotExist:
+        return JsonResponse({'success': False, 'message': '考勤事件不存在'}, status=404)
+    records = Attendance.objects.filter(event=event).select_related('enrollment__student').order_by('-scan_time')
+    data = []
+    for record in records:
+        student = record.enrollment.student
+        data.append({
+            'scan_time': record.scan_time.strftime('%Y-%m-%d %H:%M:%S') if record.scan_time else '',
+            'student_name': student.stu_name,
+            'student_id': student.stu_id,
+            'status': record.status,  # 1-出勤 2-缺勤 3-请假
+        })
+    return JsonResponse({'success': True, 'records': data}) 

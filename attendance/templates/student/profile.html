@@ -138,7 +138,7 @@
                                 <h5 class="text-primary mb-1">
                                     {% with total_credits=0 %}
                                         {% for enrollment in enrollments %}
-                                            {% with total_credits=total_credits|add:enrollment.course.credits %}{% endwith %}
+                                            {% with total_credits=total_credits|add:enrollment.course.credit %}{% endwith %}
                                         {% endfor %}
                                         {{ total_credits }}
                                     {% endwith %}

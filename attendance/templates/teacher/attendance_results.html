@@ -13,7 +13,8 @@
                 </h5>
             </div>
             <div class="card-body text-center">
-                <img src="{% url 'event_qr_code' event.event_id %}?{{ now|date:'U' }}" alt="二维码" style="width: 80%; max-width: 260px;">
+                <img src="{% url 'event_qr_code' event.event_id %}?{{ now|date:'U' }}" alt="二维码" style="width: 80%; max-width: 260px;"
+                     onerror="this.onerror=null; this.src=''; alert('二维码加载失败，请刷新页面重试');">
                 <div class="mt-3">
                     <button class="btn btn-outline-primary" onclick="location.reload()">刷新二维码</button>
                 </div>
@@ -64,7 +65,7 @@
                 <h5 class="mb-0">
                     <i class="fas fa-list me-2"></i>实时签到记录
                 </h5>
-                <span class="text-muted" style="font-size:0.95em;">页面每30秒自动刷新</span>
+                <span class="text-muted" style="font-size:0.95em;">页面每5秒自动刷新</span>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
@@ -77,23 +78,8 @@
                                 <th>扫码时间</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            {% for record in attendance_records %}
-                            <tr>
-                                <td>{{ record.enrollment.student.stu_id }}</td>
-                                <td>{{ record.enrollment.student.stu_name }}</td>
-                                <td>
-                                    {% if record.status == 1 %}
-                                    <span class="badge bg-success">出勤</span>
-                                    {% elif record.status == 2 %}
-                                    <span class="badge bg-danger">缺勤</span>
-                                    {% else %}
-                                    <span class="badge bg-warning">请假</span>
-                                    {% endif %}
-                                </td>
-                                <td>{{ record.scan_time|default:"-" }}</td>
-                            </tr>
-                            {% endfor %}
+                        <tbody id="attendance-records-tbody">
+                            <!-- JS 动态填充 -->
                         </tbody>
                     </table>
                 </div>
@@ -102,6 +88,40 @@
     </div>
 </div>
 <script>
-    setTimeout(function(){ location.reload(); }, 30000);
+    function renderAttendanceRecords(records) {
+        const tbody = document.getElementById('attendance-records-tbody');
+        tbody.innerHTML = '';
+        if (records.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">暂无签到记录</td></tr>';
+            return;
+        }
+        records.forEach(function(record) {
+            let statusHtml = '';
+            if (record.status === 1) {
+                statusHtml = '<span class="badge bg-success">出勤</span>';
+            } else if (record.status === 2) {
+                statusHtml = '<span class="badge bg-danger">缺勤</span>';
+            } else {
+                statusHtml = '<span class="badge bg-warning">请假</span>';
+            }
+            tbody.innerHTML += `<tr>
+                <td>${record.student_id}</td>
+                <td>${record.student_name}</td>
+                <td>${statusHtml}</td>
+                <td>${record.scan_time || '-'}</td>
+            </tr>`;
+        });
+    }
+    function fetchAttendanceRecords() {
+        fetch(`/teacher/event/{{ event.event_id }}/records/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    renderAttendanceRecords(data.records);
+                }
+            });
+    }
+    fetchAttendanceRecords();
+    setInterval(fetchAttendanceRecords, 5000);
 </script>
 {% endblock %} 
