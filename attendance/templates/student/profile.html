@@ -3,9 +3,9 @@
 {% block title %}个人信息 - 微信扫码考勤系统{% endblock %}
 
 {% block content %}
-<div class="row">
+<div class="row justify-content-center">
     <!-- 基本信息 -->
-    <div class="col-md-4">
+    <div class="col-md-6">
         <div class="card mb-4">
             <div class="card-header">
                 <h5 class="mb-0">
@@ -24,9 +24,15 @@
                         <span class="text-muted">学号</span>
                         <strong>{{ student.stu_id }}</strong>
                     </div>
-                    <div class="list-group-item d-flex justify-content-between">
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
                         <span class="text-muted">姓名</span>
-                        <strong>{{ student.stu_name }}</strong>
+                        <div class="d-flex align-items-center">
+                            <input type="text" class="form-control form-control-sm me-2" style="width: 100px;" 
+                                   id="student_name" value="{{ student.stu_name }}" data-original="{{ student.stu_name }}">
+                            <button class="btn btn-sm btn-outline-primary" onclick="updateField('name', 'student_name')">
+                                <i class="fas fa-save"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="list-group-item d-flex justify-content-between">
                         <span class="text-muted">专业</span>
@@ -36,20 +42,6 @@
                         <span class="text-muted">院系</span>
                         <strong>{{ student.major.dept.dept_name }}</strong>
                     </div>
-                    <div class="list-group-item d-flex justify-content-between">
-                        <span class="text-muted">年级</span>
-                        <strong>{{ student.grade }}级</strong>
-                    </div>
-                    <div class="list-group-item d-flex justify-content-between">
-                        <span class="text-muted">班级</span>
-                        <strong>{{ student.class_name }}</strong>
-                    </div>
-                </div>
-                
-                <div class="mt-4">
-                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editModal">
-                        <i class="fas fa-edit me-1"></i>申请信息变更
-                    </button>
                 </div>
             </div>
         </div>
@@ -67,188 +59,12 @@
                         <span class="text-muted">用户名</span>
                         <strong>{{ user.username }}</strong>
                     </div>
-                    <div class="list-group-item d-flex justify-content-between">
-                        <span class="text-muted">注册时间</span>
-                        <small>{{ user.date_joined|date:"Y-m-d" }}</small>
-                    </div>
-                    <div class="list-group-item d-flex justify-content-between">
-                        <span class="text-muted">最后登录</span>
-                        <small>{{ user.last_login|date:"Y-m-d H:i"|default:"从未登录" }}</small>
-                    </div>
                 </div>
                 <div class="mt-3 d-grid">
                     <button type="button" class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#passwordModal">
                         <i class="fas fa-lock me-1"></i>修改密码
                     </button>
                 </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- 选课信息 -->
-    <div class="col-md-8">
-        <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">
-                    <i class="fas fa-book me-2"></i>选课信息
-                </h5>
-                <span class="badge bg-primary">共 {{ enrollments|length }} 门课程</span>
-            </div>
-            <div class="card-body">
-                {% if enrollments %}
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>课程名称</th>
-                                    <th>课程代码</th>
-                                    <th>任课教师</th>
-                                    <th>学分</th>
-                                    <th>上课时间</th>
-                                    <th>上课地点</th>
-                                    <th>选课时间</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for enrollment in enrollments %}
-                                <tr>
-                                    <td>
-                                        <strong>{{ enrollment.course.course_name }}</strong>
-                                    </td>
-                                    <td>{{ enrollment.course.course_id }}</td>
-                                    <td>{{ enrollment.course.teacher.teacher_name }}</td>
-                                    <td>
-                                        <span class="badge bg-info">{{ enrollment.course.credits }}</span>
-                                    </td>
-                                    <td>{{ enrollment.course.class_time }}</td>
-                                    <td>{{ enrollment.course.location }}</td>
-                                    <td>
-                                        <small>{{ enrollment.enrollment_date|date:"Y-m-d" }}</small>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    <!-- 学分统计 -->
-                    <div class="row mt-4">
-                        <div class="col-md-6">
-                            <div class="p-3 bg-light rounded text-center">
-                                <h5 class="text-primary mb-1">
-                                    {% with total_credits=0 %}
-                                        {% for enrollment in enrollments %}
-                                            {% with total_credits=total_credits|add:enrollment.course.credit %}{% endwith %}
-                                        {% endfor %}
-                                        {{ total_credits }}
-                                    {% endwith %}
-                                </h5>
-                                <small class="text-muted">总学分</small>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="p-3 bg-light rounded text-center">
-                                <h5 class="text-success mb-1">{{ enrollments|length }}</h5>
-                                <small class="text-muted">选修课程数</small>
-                            </div>
-                        </div>
-                    </div>
-                {% else %}
-                    <div class="text-center py-5">
-                        <i class="fas fa-book-open fa-4x text-muted mb-4"></i>
-                        <h5 class="text-muted">暂无选课记录</h5>
-                        <p class="text-muted">您还没有选修任何课程</p>
-                    </div>
-                {% endif %}
-            </div>
-        </div>
-        
-        <!-- 快速操作 -->
-        <div class="card">
-            <div class="card-header">
-                <h6 class="mb-0">
-                    <i class="fas fa-bolt me-2"></i>快速操作
-                </h6>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-3 col-6 mb-3">
-                        <a href="{% url 'student_courses' %}" class="btn btn-outline-primary w-100">
-                            <i class="fas fa-book fa-2x mb-2"></i><br>
-                            我的课程
-                        </a>
-                    </div>
-                    <div class="col-md-3 col-6 mb-3">
-                        <a href="{% url 'student_attendance' %}" class="btn btn-outline-success w-100">
-                            <i class="fas fa-clipboard-check fa-2x mb-2"></i><br>
-                            考勤记录
-                        </a>
-                    </div>
-                    <div class="col-md-3 col-6 mb-3">
-                        <a href="{% url 'submit_leave_request' %}" class="btn btn-outline-warning w-100">
-                            <i class="fas fa-calendar-plus fa-2x mb-2"></i><br>
-                            申请请假
-                        </a>
-                    </div>
-                    <div class="col-md-3 col-6 mb-3">
-                        <a href="{% url 'attendance_statistics' %}" class="btn btn-outline-info w-100">
-                            <i class="fas fa-chart-line fa-2x mb-2"></i><br>
-                            出勤统计
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- 信息变更申请模态框 -->
-<div class="modal fade" id="editModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="fas fa-edit me-2"></i>申请信息变更
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle me-2"></i>
-                    <strong>温馨提示：</strong>个人信息变更需要提交申请，经管理员审核后生效。
-                </div>
-                <form id="editForm">
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <label for="change_type" class="form-label">变更类型</label>
-                        <select class="form-select" id="change_type" name="change_type" required>
-                            <option value="">请选择变更类型</option>
-                            <option value="name">姓名</option>
-                            <option value="class">班级</option>
-                            <option value="contact">联系方式</option>
-                            <option value="other">其他</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="current_value" class="form-label">当前信息</label>
-                        <input type="text" class="form-control" id="current_value" name="current_value" readonly>
-                    </div>
-                    <div class="mb-3">
-                        <label for="new_value" class="form-label">变更为</label>
-                        <input type="text" class="form-control" id="new_value" name="new_value" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="reason" class="form-label">变更原因</label>
-                        <textarea class="form-control" id="reason" name="reason" rows="3" 
-                                  placeholder="请说明变更原因..." required></textarea>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-primary" onclick="submitChangeRequest()">
-                    <i class="fas fa-paper-plane me-1"></i>提交申请
-                </button>
             </div>
         </div>
     </div>
@@ -299,45 +115,53 @@
 
 {% block extra_js %}
 <script>
-$(document).ready(function() {
-    // 变更类型选择事件
-    $('#change_type').change(function() {
-        var type = $(this).val();
-        var currentValue = '';
-        
-        switch(type) {
-            case 'name':
-                currentValue = '{{ student.stu_name }}';
-                break;
-            case 'class':
-                currentValue = '{{ student.class_name }}';
-                break;
-            case 'contact':
-                currentValue = '暂无';
-                break;
-            default:
-                currentValue = '';
-        }
-        
-        $('#current_value').val(currentValue);
-    });
-});
-
-function submitChangeRequest() {
-    var form = $('#editForm');
-    var changeType = $('#change_type').val();
-    var newValue = $('#new_value').val();
-    var reason = $('#reason').val();
+function updateField(fieldType, inputId) {
+    var input = document.getElementById(inputId);
+    var newValue = input.value.trim();
+    var originalValue = input.getAttribute('data-original');
     
-    if (!changeType || !newValue || !reason) {
-        alert('请填写完整信息');
+    if (!newValue) {
+        alert('请输入有效的内容');
+        input.value = originalValue;
         return;
     }
     
-    // 这里应该发送AJAX请求到后端
-    alert('信息变更申请已提交，请等待管理员审核');
-    $('#editModal').modal('hide');
-    form[0].reset();
+    if (newValue === originalValue) {
+        alert('内容未发生变化');
+        return;
+    }
+    
+    // 发送AJAX请求更新信息
+    fetch('{% url "update_profile" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            field_type: fieldType,
+            new_value: newValue
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('信息更新成功');
+            input.setAttribute('data-original', newValue);
+            // 更新页面显示
+            if (fieldType === 'name') {
+                document.querySelector('h5.card-title').textContent = newValue;
+            }
+        } else {
+            alert('更新失败：' + (data.message || '未知错误'));
+            input.value = originalValue;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('网络错误，请稍后重试');
+        input.value = originalValue;
+    });
 }
 
 function changePassword() {
@@ -360,28 +184,43 @@ function changePassword() {
         return;
     }
     
-    // 这里应该发送AJAX请求到后端
-    alert('密码修改功能暂未开放，请联系管理员');
-    $('#passwordModal').modal('hide');
-    $('#passwordForm')[0].reset();
+    // 发送AJAX请求修改密码
+    fetch('{% url "change_password" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            old_password: oldPassword,
+            new_password: newPassword
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('密码修改成功');
+            $('#passwordModal').modal('hide');
+            $('#passwordForm')[0].reset();
+        } else {
+            alert('密码修改失败：' + (data.message || '未知错误'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('网络错误，请稍后重试');
+    });
 }
 </script>
+
+<!-- 添加CSRF Token -->
+<input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
 {% endblock %}
 
 {% block extra_css %}
 <style>
 .bg-light {
     background-color: #f8f9fa !important;
-}
-
-.table th {
-    border-top: none;
-    font-weight: 600;
-    background-color: #f8f9fa;
-}
-
-.table-hover tbody tr:hover {
-    background-color: rgba(0,0,0,.02);
 }
 
 .list-group-item {
@@ -395,10 +234,6 @@ function changePassword() {
 
 .list-group-item:last-child {
     border-bottom: none;
-}
-
-.badge {
-    font-size: 0.75em;
 }
 
 .card:hover {
@@ -415,14 +250,6 @@ function changePassword() {
 .form-select:focus {
     border-color: var(--primary-color);
     box-shadow: 0 0 0 0.2rem rgba(65, 118, 144, 0.25);
-}
-
-.btn-outline-primary:hover,
-.btn-outline-success:hover,
-.btn-outline-warning:hover,
-.btn-outline-info:hover {
-    transform: translateY(-1px);
-    transition: transform 0.2s ease-in-out;
 }
 </style>
 {% endblock %} 

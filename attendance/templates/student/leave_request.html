@@ -1,162 +1,235 @@
 {% extends 'base.html' %}
 
-{% block title %}申请请假 - 微信扫码考勤系统{% endblock %}
+{% block title %}请假管理 - 微信扫码考勤系统{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-8 mx-auto">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-calendar-plus me-2"></i>申请请假
-                </h5>
-            </div>
-            <div class="card-body">
-                {% if available_events %}
-                    <form method="post">
-                        {% csrf_token %}
-                        <div class="mb-3">
-                            <label for="event_id" class="form-label">选择课程 <span class="text-danger">*</span></label>
-                            <select class="form-select" id="event_id" name="event_id" required>
-                                <option value="">请选择要请假的课程</option>
-                                {% for event in available_events %}
-                                <option value="{{ event.event_id }}" 
-                                        data-course="{{ event.course.course_name }}"
-                                        data-date="{{ event.event_date }}"
-                                        data-time="{{ event.scan_start_time }} - {{ event.scan_end_time }}">
-                                    {{ event.course.course_name }} - {{ event.event_date }} ({{ event.scan_start_time }}-{{ event.scan_end_time }})
-                                </option>
-                                {% endfor %}
-                            </select>
-                            <div class="form-text">只能为未来的课程申请请假</div>
-                        </div>
+<!-- 简单的按钮切换 -->
+<div class="mb-4">
+    <button type="button" class="btn btn-primary me-2" id="show-request-btn">
+        <i class="fas fa-calendar-plus me-2"></i>申请请假
+    </button>
+    <button type="button" class="btn btn-outline-primary" id="show-history-btn">
+        <i class="fas fa-history me-2"></i>请假记录
+    </button>
+</div>
 
-                        <!-- 选中课程的详细信息 -->
-                        <div id="courseDetails" class="mb-3" style="display: none;">
-                            <div class="alert alert-info">
-                                <h6 class="alert-heading">
-                                    <i class="fas fa-info-circle me-2"></i>课程信息
-                                </h6>
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <strong>课程名称：</strong><span id="courseName"></span>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <strong>上课日期：</strong><span id="courseDate"></span>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <strong>上课时间：</strong><span id="courseTime"></span>
+<!-- 申请请假内容 -->
+<div id="request-content">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar-plus me-2"></i>申请请假
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if available_events %}
+                        <form method="post">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="event_id" class="form-label">选择课程 <span class="text-danger">*</span></label>
+                                <select class="form-select" id="event_id" name="event_id" required>
+                                    <option value="">请选择要请假的课程</option>
+                                    {% for event in available_events %}
+                                    <option value="{{ event.event_id }}" 
+                                            data-course="{{ event.course.course_name }}"
+                                            data-date="{{ event.event_date }}"
+                                            data-time="{{ event.scan_start_time }} - {{ event.scan_end_time }}">
+                                        {{ event.course.course_name }} - {{ event.event_date }} ({{ event.scan_start_time }}-{{ event.scan_end_time }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">只能为未来的课程申请请假</div>
+                            </div>
+
+                            <!-- 选中课程的详细信息 -->
+                            <div id="courseDetails" class="mb-3" style="display: none;">
+                                <div class="alert alert-info">
+                                    <h6 class="alert-heading">
+                                        <i class="fas fa-info-circle me-2"></i>课程信息
+                                    </h6>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <strong>课程名称：</strong><span id="courseName"></span>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <strong>上课日期：</strong><span id="courseDate"></span>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <strong>上课时间：</strong><span id="courseTime"></span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <div class="mb-3">
-                            <label for="reason" class="form-label">请假原因 <span class="text-danger">*</span></label>
-                            <textarea class="form-control" id="reason" name="reason" rows="4" 
-                                      placeholder="请详细说明请假原因..." required></textarea>
-                            <div class="form-text">请如实填写请假原因，以便教师审批</div>
-                        </div>
+                            <div class="mb-3">
+                                <label for="reason" class="form-label">请假原因 <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="reason" name="reason" rows="4" 
+                                          placeholder="请详细说明请假原因..." required></textarea>
+                                <div class="form-text">请如实填写请假原因，以便教师审批</div>
+                            </div>
 
-                        <div class="mb-3">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="confirmCheck" required>
-                                <label class="form-check-label" for="confirmCheck">
-                                    我确认以上信息真实有效，并承诺按时返校上课
-                                </label>
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="confirmCheck" required>
+                                    <label class="form-check-label" for="confirmCheck">
+                                        我确认以上信息真实有效，并承诺按时返校上课
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-paper-plane me-1"></i>提交申请
+                                </button>
+                            </div>
+                        </form>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-calendar-check fa-4x text-muted mb-4"></i>
+                            <h5 class="text-muted">暂无可申请请假的课程</h5>
+                            <p class="text-muted">
+                                当前没有可以申请请假的课程事件。<br>
+                                可能的原因：
+                            </p>
+                            <ul class="list-unstyled text-muted">
+                                <li><i class="fas fa-check me-2"></i>所有课程都已签到或已结束</li>
+                                <li><i class="fas fa-check me-2"></i>已为相关课程提交过请假申请</li>
+                                <li><i class="fas fa-check me-2"></i>暂无未来的课程安排</li>
+                            </ul>
+                            <div class="mt-4">
+                                <a href="{% url 'student_courses' %}" class="btn btn-outline-primary">
+                                    <i class="fas fa-book me-1"></i>查看我的课程
+                                </a>
                             </div>
                         </div>
-
-                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                            <a href="{% url 'leave_request_history' %}" class="btn btn-outline-secondary me-md-2">
-                                <i class="fas fa-history me-1"></i>查看历史记录
-                            </a>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-paper-plane me-1"></i>提交申请
-                            </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 请假须知 -->
+    <div class="row mt-4">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>请假须知
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-primary">
+                                <i class="fas fa-clock me-2"></i>申请时间
+                            </h6>
+                            <ul class="small text-muted">
+                                <li>只能为未来的课程申请请假</li>
+                                <li>建议提前申请，避免临时请假</li>
+                            </ul>
                         </div>
-                    </form>
-                {% else %}
-                    <div class="text-center py-5">
-                        <i class="fas fa-calendar-check fa-4x text-muted mb-4"></i>
-                        <h5 class="text-muted">暂无可申请请假的课程</h5>
-                        <p class="text-muted">
-                            当前没有可以申请请假的课程事件。<br>
-                            可能的原因：
-                        </p>
-                        <ul class="list-unstyled text-muted">
-                            <li><i class="fas fa-check me-2"></i>所有课程都已签到或已结束</li>
-                            <li><i class="fas fa-check me-2"></i>已为相关课程提交过请假申请</li>
-                            <li><i class="fas fa-check me-2"></i>暂无未来的课程安排</li>
-                        </ul>
-                        <div class="mt-4">
-                            <a href="{% url 'student_courses' %}" class="btn btn-outline-primary me-2">
-                                <i class="fas fa-book me-1"></i>查看我的课程
-                            </a>
-                            <a href="{% url 'leave_request_history' %}" class="btn btn-outline-info">
-                                <i class="fas fa-history me-1"></i>查看请假记录
-                            </a>
+                        <div class="col-md-6">
+                            <h6 class="text-success">
+                                <i class="fas fa-check-circle me-2"></i>审批流程
+                            </h6>
+                            <ul class="small text-muted">
+                                <li>提交申请后等待教师审批</li>
+                                <li>请假获批后自动标记为请假状态</li>
+                            </ul>
                         </div>
                     </div>
-                {% endif %}
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- 请假须知 -->
-<div class="row mt-4">
-    <div class="col-md-8 mx-auto">
-        <div class="card">
-            <div class="card-header">
-                <h6 class="mb-0">
-                    <i class="fas fa-exclamation-triangle me-2"></i>请假须知
-                </h6>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6 class="text-primary">
-                            <i class="fas fa-clock me-2"></i>申请时间
-                        </h6>
-                        <ul class="small text-muted">
-                            <li>只能为未来的课程申请请假</li>
-                            <li>建议提前申请，避免临时请假</li>
-                            <li>每门课程只能提交一次请假申请</li>
-                        </ul>
-                    </div>
-                    <div class="col-md-6">
-                        <h6 class="text-success">
-                            <i class="fas fa-check-circle me-2"></i>审批流程
-                        </h6>
-                        <ul class="small text-muted">
-                            <li>提交申请后等待教师审批</li>
-                            <li>审批结果会及时通知</li>
-                            <li>请假获批后自动标记为请假状态</li>
-                        </ul>
-                    </div>
+<!-- 请假记录内容 -->
+<div id="history-content" style="display: none;">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history me-2"></i>请假申请记录
+                    </h5>
+                    <span class="badge bg-primary">共 {{ leave_requests|length }} 条记录</span>
                 </div>
-                <div class="row mt-3">
-                    <div class="col-md-6">
-                        <h6 class="text-warning">
-                            <i class="fas fa-edit me-2"></i>填写要求
-                        </h6>
-                        <ul class="small text-muted">
-                            <li>请假原因必须真实详细</li>
-                            <li>特殊情况请提供相关证明</li>
-                            <li>紧急情况可事后补办手续</li>
-                        </ul>
-                    </div>
-                    <div class="col-md-6">
-                        <h6 class="text-info">
-                            <i class="fas fa-phone me-2"></i>联系方式
-                        </h6>
-                        <ul class="small text-muted">
-                            <li>如有疑问请联系任课教师</li>
-                            <li>紧急情况可联系学院办公室</li>
-                            <li>系统问题请联系技术支持</li>
-                        </ul>
-                    </div>
+                <div class="card-body">
+                    {% if leave_requests %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>课程信息</th>
+                                        <th>请假日期</th>
+                                        <th>申请时间</th>
+                                        <th>请假原因</th>
+                                        <th>审批状态</th>
+                                        <th>审批人</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for leave_request in leave_requests %}
+                                        <tr>
+                                            <td>
+                                                <div>
+                                                    <strong>{{ leave_request.event.course.course_name }}</strong>
+                                                    <br>
+                                                    <small class="text-muted">{{ leave_request.event.course.course_id }}</small>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div>
+                                                    <strong>{{ leave_request.event.event_date|date:"Y年n月j日" }}</strong>
+                                                    <br>
+                                                    <small class="text-muted">
+                                                        {{ leave_request.event.scan_start_time|time:"H:i" }} - {{ leave_request.event.scan_end_time|time:"H:i" }}
+                                                    </small>
+                                                </div>
+                                            </td>
+                                            <td>{{ leave_request.submit_time|date:"n月j日 H:i" }}</td>
+                                            <td>
+                                                <div style="max-width: 200px;">
+                                                    {{ leave_request.reason|truncatechars:50 }}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                {% if leave_request.approval_status == 1 %}
+                                                    <span class="badge bg-warning">
+                                                        <i class="fas fa-clock me-1"></i>待审批
+                                                    </span>
+                                                {% elif leave_request.approval_status == 2 %}
+                                                    <span class="badge bg-success">
+                                                        <i class="fas fa-check me-1"></i>已通过
+                                                    </span>
+                                                {% elif leave_request.approval_status == 3 %}
+                                                    <span class="badge bg-danger">
+                                                        <i class="fas fa-times me-1"></i>已拒绝
+                                                    </span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if leave_request.approver %}
+                                                    {{ leave_request.approver.teacher_name }}
+                                                {% else %}
+                                                    <span class="text-muted">-</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-calendar-times fa-4x text-muted mb-4"></i>
+                            <h5 class="text-muted">暂无请假记录</h5>
+                            <p class="text-muted">您还没有提交过请假申请</p>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -167,6 +240,21 @@
 {% block extra_js %}
 <script>
 $(document).ready(function() {
+    // 按钮点击事件
+    $('#show-request-btn').click(function() {
+        $('#request-content').show();
+        $('#history-content').hide();
+        $(this).removeClass('btn-outline-primary').addClass('btn-primary');
+        $('#show-history-btn').removeClass('btn-primary').addClass('btn-outline-primary');
+    });
+    
+    $('#show-history-btn').click(function() {
+        $('#request-content').hide();
+        $('#history-content').show();
+        $(this).removeClass('btn-outline-primary').addClass('btn-primary');
+        $('#show-request-btn').removeClass('btn-primary').addClass('btn-outline-primary');
+    });
+
     // 监听课程选择变化
     $('#event_id').change(function() {
         var selectedOption = $(this).find('option:selected');
@@ -200,12 +288,6 @@ $(document).ready(function() {
         
         if (!reason) {
             alert('请填写请假原因');
-            e.preventDefault();
-            return false;
-        }
-        
-        if (reason.length < 10) {
-            alert('请假原因至少需要10个字符');
             e.preventDefault();
             return false;
         }

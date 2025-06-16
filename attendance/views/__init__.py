@@ -30,11 +30,11 @@ from .teacher_views import (
 
 from .admin_views import (
     admin_dashboard,
-    manage_students,
-    manage_teachers,
+    manage_users,
+    manage_departments_majors,
     manage_courses,
-    manage_departments,
-    manage_majors
+    admin_statistics,
+    admin_profile
 )
 
 from .wechat_notify import wechat_notify

@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+
+{% block title %}教师管理 - 微信扫码考勤系统{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4><i class="fas fa-chalkboard-teacher me-2"></i>教师管理</h4>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTeacherModal">
+        <i class="fas fa-plus me-1"></i>添加教师
+    </button>
+</div>
+
+<!-- 搜索栏 -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-8">
+                <input type="text" class="form-control" name="search" value="{{ search }}" 
+                       placeholder="搜索工号、姓名或院系...">
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-outline-primary me-2">
+                    <i class="fas fa-search me-1"></i>搜索
+                </button>
+                {% if search %}
+                    <a href="{% url 'manage_teachers' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times me-1"></i>清除
+                    </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 教师列表 -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-list me-2"></i>教师列表</span>
+        <span class="badge bg-primary">共 {{ teachers.count }} 名教师</span>
+    </div>
+    <div class="card-body">
+        {% if teachers %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>工号</th>
+                            <th>姓名</th>
+                            <th>所属院系</th>
+                            <th>账号状态</th>
+                            <th>授课数量</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for teacher in teachers %}
+                            <tr>
+                                <td><strong>{{ teacher.teacher_id }}</strong></td>
+                                <td>{{ teacher.teacher_name }}</td>
+                                <td>{{ teacher.dept.dept_name }}</td>
+                                <td>
+                                    {% if teacher.user %}
+                                        {% if teacher.user.is_active %}
+                                            <span class="badge bg-success">正常</span>
+                                        {% else %}
+                                            <span class="badge bg-warning">禁用</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="badge bg-secondary">未关联</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">{{ teacher.teachingassignment_set.count }} 门</span>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" title="编辑">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-outline-info" title="详情">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-outline-success" title="授课安排">
+                                            <i class="fas fa-calendar"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger" title="删除">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-chalkboard-teacher fa-4x text-muted mb-3"></i>
+                <h5 class="text-muted">暂无教师数据</h5>
+                {% if search %}
+                    <p class="text-muted">没有找到匹配"{{ search }}"的教师</p>
+                {% else %}
+                    <p class="text-muted">系统中还没有教师信息</p>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 添加教师模态框 -->
+<div class="modal fade" id="addTeacherModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-plus me-2"></i>添加教师</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addTeacherForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">工号 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="teacher_id" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">姓名 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="teacher_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">所属院系 <span class="text-danger">*</span></label>
+                        <select class="form-select" name="dept_id" required>
+                            <option value="">请选择院系</option>
+                            <!-- 这里需要动态加载院系列表 -->
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="submitAddTeacher()">
+                    <i class="fas fa-save me-1"></i>保存
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function submitAddTeacher() {
+    // 这里添加提交逻辑
+    alert('添加教师功能待实现');
+}
+</script>
+{% endblock %} 

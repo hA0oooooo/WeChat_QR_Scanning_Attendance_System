@@ -1,0 +1,375 @@
+{% extends 'base.html' %}
+
+{% block title %}管理课程 - 微信扫码考勤系统{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4><i class="fas fa-book me-2"></i>管理课程</h4>
+    <div class="btn-group">
+        <button class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown">
+            <i class="fas fa-plus me-1"></i>新增
+        </button>
+        <ul class="dropdown-menu">
+            <li><button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#addCourseModal">
+                <i class="fas fa-book me-1"></i>新增课程
+            </button></li>
+            <li><button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#addTeachingModal">
+                <i class="fas fa-chalkboard-teacher me-1"></i>安排教学
+            </button></li>
+        </ul>
+    </div>
+</div>
+
+<!-- 搜索栏 -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-8">
+                <input type="text" class="form-control" name="search" value="{{ search }}" 
+                       placeholder="搜索课程编号、课程名称或院系...">
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-outline-primary me-2">
+                    <i class="fas fa-search me-1"></i>搜索
+                </button>
+                {% if search %}
+                    <a href="{% url 'manage_courses' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times me-1"></i>清除
+                    </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 课程列表 -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-list me-2"></i>课程列表</span>
+        <span class="badge bg-primary">共 {{ course_stats|length }} 门课程</span>
+    </div>
+    <div class="card-body">
+        {% if course_stats %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>课程信息</th>
+                            <th>授课教师</th>
+                            <th>选课情况</th>
+                            <th>考勤统计</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stat in course_stats %}
+                            <tr>
+                                <td>
+                                    <div>
+                                        <strong>{{ stat.course.course_name }}</strong>
+                                        <small class="text-muted d-block">{{ stat.course.course_id }}</small>
+                                        <span class="badge bg-secondary">{{ stat.course.dept.dept_name }}</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if stat.teaching_assignments %}
+                                        {% for assignment in stat.teaching_assignments %}
+                                            <div class="mb-1">
+                                                <span class="text-dark">{{ assignment.teacher.teacher_name }}</span>
+                                                <small class="text-muted d-block">({{ assignment.teacher.teacher_id }})</small>
+                                            </div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <span class="text-muted">未安排教师</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="text-center">
+                                        <h6 class="mb-1">{{ stat.enrollment_count }}</h6>
+                                        <small class="text-muted">选课学生</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="text-center">
+                                        <h6 class="mb-1">{{ stat.event_count }}</h6>
+                                        <small class="text-muted">考勤次数</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" title="编辑课程" 
+                                                data-course-id="{{ stat.course.course_id }}" 
+                                                data-course-name="{{ stat.course.course_name }}" 
+                                                data-dept-id="{{ stat.course.dept.dept_id }}"
+                                                onclick="editCourse(this)">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-outline-success" title="教学安排" onclick="manageTeachingAssignment('{{ stat.course.course_id }}', '{{ stat.course.course_name }}')">
+                                            <i class="fas fa-chalkboard-teacher"></i>
+                                        </button>
+                                        <button class="btn btn-outline-info" title="选课管理" onclick="manageEnrollment('{{ stat.course.course_id }}', '{{ stat.course.course_name }}')">
+                                            <i class="fas fa-users"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger" title="删除" onclick="deleteCourse('{{ stat.course.course_id }}', '{{ stat.course.course_name }}')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-book fa-4x text-muted mb-3"></i>
+                <h5 class="text-muted">暂无课程数据</h5>
+                {% if search %}
+                    <p class="text-muted">没有找到匹配"{{ search }}"的课程</p>
+                {% else %}
+                    <p class="text-muted">系统中还没有课程信息</p>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 编辑课程模态框 -->
+<div class="modal fade" id="editCourseModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-edit me-2"></i>编辑课程</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editCourseForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="original_course_id" id="edit_original_course_id">
+                    <div class="mb-3">
+                        <label class="form-label">课程编号 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="course_id" id="edit_course_id" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">课程名称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="course_name" id="edit_course_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">所属院系 <span class="text-danger">*</span></label>
+                        <select class="form-select" name="dept_id" id="edit_course_dept_select" required>
+                            <option value="">请选择院系</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="updateCourse()">
+                    <i class="fas fa-save me-1"></i>保存
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加课程模态框 -->
+<div class="modal fade" id="addCourseModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-plus me-2"></i>新增课程</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addCourseForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">课程编号 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="course_id" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">课程名称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="course_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">所属院系 <span class="text-danger">*</span></label>
+                        <select class="form-select" name="dept_id" required>
+                            <option value="">请选择院系</option>
+                        </select>
+                    </div>
+
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary">
+                    <i class="fas fa-save me-1"></i>保存
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 安排教学模态框 -->
+<div class="modal fade" id="addTeachingModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-plus me-2"></i>安排教学</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addTeachingForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">选择课程 <span class="text-danger">*</span></label>
+                        <select class="form-select" name="course_id" required>
+                            <option value="">请选择课程</option>
+                            {% for stat in course_stats %}
+                                <option value="{{ stat.course.id }}">{{ stat.course.course_name }} ({{ stat.course.course_id }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">选择教师 <span class="text-danger">*</span></label>
+                        <select class="form-select" name="teacher_id" required>
+                            <option value="">请选择教师</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">学期 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="semester" 
+                               placeholder="例如：2024-2025-1" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary">
+                    <i class="fas fa-save me-1"></i>保存
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 页面加载时获取院系列表
+document.addEventListener('DOMContentLoaded', function() {
+    loadDepartments();
+});
+
+function loadDepartments() {
+    fetch('/api/get-departments/')
+        .then(response => response.json())
+        .then(data => {
+            const deptSelects = [
+                document.getElementById('edit_course_dept_select')
+            ];
+            deptSelects.forEach(select => {
+                if (select) {
+                    select.innerHTML = '<option value="">请选择院系</option>';
+                    data.departments.forEach(dept => {
+                        select.innerHTML += `<option value="${dept.dept_id}">${dept.dept_name}</option>`;
+                    });
+                }
+            });
+        });
+}
+
+// 课程操作函数
+function editCourse(button) {
+    const courseId = button.getAttribute('data-course-id');
+    const courseName = button.getAttribute('data-course-name');
+    const deptId = button.getAttribute('data-dept-id');
+    
+    // 填充编辑表单
+    document.getElementById('edit_original_course_id').value = courseId;
+    document.getElementById('edit_course_id').value = courseId;
+    document.getElementById('edit_course_name').value = courseName;
+    
+    // 设置院系选择
+    setTimeout(() => {
+        if (deptId) {
+            document.getElementById('edit_course_dept_select').value = deptId;
+        }
+    }, 100);
+    
+    // 显示模态框
+    new bootstrap.Modal(document.getElementById('editCourseModal')).show();
+}
+
+function updateCourse() {
+    const formData = new FormData(document.getElementById('editCourseForm'));
+    const data = {
+        'original_course_id': formData.get('original_course_id'),
+        'course_id': formData.get('course_id'),
+        'course_name': formData.get('course_name'),
+        'dept_id': formData.get('dept_id')
+    };
+    
+    if (!data.course_id || !data.course_name || !data.dept_id) {
+        alert('请填写完整信息！');
+        return;
+    }
+    
+    fetch('/api/update-course/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('更新成功！');
+            location.reload();
+        } else {
+            alert('更新失败：' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('操作失败：' + error);
+    });
+}
+
+function manageTeachingAssignment(id, name) {
+    // 跳转到教学安排管理页面
+    window.location.href = `/manage/teaching-assignment/${id}/`;
+}
+
+function manageEnrollment(id, name) {
+    // 跳转到选课管理页面
+    window.location.href = `/manage/enrollment/${id}/`;
+}
+
+function deleteCourse(id, name) {
+    if (confirm(`确定要删除课程 "${name}" 吗？\n此操作将删除所有相关的教学安排、选课记录和考勤数据！\n此操作不可恢复！`)) {
+        fetch('/api/delete-course/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({'course_id': id})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('删除成功！');
+                location.reload();
+            } else {
+                alert('删除失败：' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('操作失败：' + error);
+        });
+    }
+}
+</script>
+{% endblock %} 

@@ -16,12 +16,14 @@ EVENT_STATUS_CHOICES = [
 STATUS_PRESENT = 1   # 出勤
 STATUS_ABSENT = 2    # 缺勤
 STATUS_LEAVE = 3     # 请假
+STATUS_NOT_STARTED = 4  # 未开始
 
 # 考勤状态选择项
 STATUS_CHOICES = [
     (STATUS_PRESENT, '出勤'),
     (STATUS_ABSENT, '缺勤'),
     (STATUS_LEAVE, '请假'),
+    (STATUS_NOT_STARTED, '未开始'),
 ]
 
 # 请假状态常量
@@ -151,7 +153,7 @@ class Attendance(models.Model):
     enrollment = models.ForeignKey(Enrollment, on_delete=models.CASCADE, db_column='enroll_id', null=False, verbose_name='选课记录')
     event = models.ForeignKey(AttendanceEvent, on_delete=models.CASCADE, db_column='event_id', null=False, verbose_name='考勤事件')
     scan_time = models.DateTimeField(null=True, blank=True, verbose_name='扫码考勤时间')
-    status = models.PositiveSmallIntegerField(null=False, verbose_name='考勤状态：1-出勤，2-缺勤，3-请假')
+    status = models.PositiveSmallIntegerField(null=False, verbose_name='考勤状态：1-出勤，2-缺勤，3-请假，4-未开始')
     notes = models.TextField(null=True, blank=True, verbose_name='备注')
 
     class Meta:

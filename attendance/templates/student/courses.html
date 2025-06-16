@@ -8,86 +8,61 @@
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">
-                    <i class="fas fa-book me-2"></i>我的课程
+                    <i class="fas fa-calendar-week me-2"></i>我的课程表
                 </h5>
-                <span class="badge bg-primary">共 {{ course_stats|length }} 门课程</span>
+                <span class="badge bg-primary">共 {{ course_info|length }} 门课程</span>
             </div>
             <div class="card-body">
-                {% if course_stats %}
+                {% if course_info %}
                     <div class="row">
-                        {% for stat in course_stats %}
-                        <div class="col-lg-6 col-xl-4 mb-4">
-                            <div class="card h-100 border-start border-primary border-4">
+                        {% for info in course_info %}
+                        <div class="col-lg-6 col-xl-6 mb-4">
+                            <div class="card h-100 border-start border-success border-4 course-card">
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-start mb-3">
                                         <div class="flex-grow-1">
-                                            <h6 class="card-title mb-1">{{ stat.course.course_name }}</h6>
-                                            <p class="text-muted small mb-0">{{ stat.course.course_id }}</p>
+                                            <h5 class="card-title mb-1 text-primary">{{ info.course.course_name }}</h5>
+                                            <p class="text-muted small mb-0">{{ info.course.course_id }}</p>
                                         </div>
-                                        <div class="text-end">
-                                            <span class="badge bg-light text-dark">{{ stat.course.credits }}学分</span>
+
+                                    </div>
+                                    
+                                    <div class="course-info">
+                                        <div class="info-item mb-2">
+                                            <i class="fas fa-chalkboard-teacher text-primary me-2"></i>
+                                            <strong>任课教师:</strong> 
+                                            <span class="text-dark">{{ info.teacher_name }}</span>
+                                        </div>
+                                        
+                                        <div class="info-item mb-2">
+                                            <i class="fas fa-map-marker-alt text-danger me-2"></i>
+                                            <strong>上课地点:</strong> 
+                                            <span class="text-dark">{{ info.location }}</span>
+                                        </div>
+                                        
+                                        <div class="info-item mb-2">
+                                            <i class="fas fa-clock text-info me-2"></i>
+                                            <strong>上课时间:</strong> 
+                                            <span class="text-dark">{{ info.class_time }}</span>
+                                        </div>
+                                        
+                                        <div class="info-item mb-2">
+                                            <i class="fas fa-university text-warning me-2"></i>
+                                            <strong>开课院系:</strong> 
+                                            <span class="text-dark">{{ info.course.dept.dept_name }}</span>
                                         </div>
                                     </div>
                                     
-                                    <div class="mb-3">
+                                    <div class="mt-3 pt-3 border-top">
                                         <div class="row text-center">
-                                            <div class="col-6">
-                                                <div class="border-end">
-                                                    <h5 class="text-primary mb-0">{{ stat.attendance_rate }}%</h5>
-                                                    <small class="text-muted">出勤率</small>
-                                                </div>
-                                            </div>
-                                            <div class="col-6">
-                                                <h5 class="text-info mb-0">{{ stat.total_events }}</h5>
-                                                <small class="text-muted">总课次</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="mb-3">
-                                        <div class="row text-center small">
-                                            <div class="col-4">
-                                                <div class="text-success">
-                                                    <i class="fas fa-check-circle"></i>
-                                                    <div>{{ stat.attended }}</div>
-                                                    <small>出勤</small>
-                                                </div>
-                                            </div>
-                                            <div class="col-4">
-                                                <div class="text-warning">
-                                                    <i class="fas fa-calendar-alt"></i>
-                                                    <div>{{ stat.leave }}</div>
-                                                    <small>请假</small>
-                                                </div>
-                                            </div>
-                                            <div class="col-4">
-                                                <div class="text-danger">
-                                                    <i class="fas fa-times-circle"></i>
-                                                    <div>{{ stat.absent }}</div>
-                                                    <small>缺勤</small>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="course-info mb-3">
-                                        <div class="row small text-muted">
-                                            <div class="col-12 mb-1">
-                                                <i class="fas fa-user me-1"></i>{{ stat.course.teacher.teacher_name }}
-                                            </div>
-                                            <div class="col-12 mb-1">
-                                                <i class="fas fa-map-marker-alt me-1"></i>{{ stat.course.location }}
-                                            </div>
                                             <div class="col-12">
-                                                <i class="fas fa-clock me-1"></i>{{ stat.course.class_time }}
+                                                <div class="p-2 bg-light rounded">
+                                                    <i class="fas fa-users text-primary"></i>
+                                                    <div class="fw-bold">必修</div>
+                                                    <small class="text-muted">类型</small>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                    
-                                    <div class="d-grid">
-                                        <a href="{% url 'student_course_detail' stat.course.course_id %}" class="btn btn-outline-primary btn-sm">
-                                            <i class="fas fa-eye me-1"></i>查看详情
-                                        </a>
                                     </div>
                                 </div>
                             </div>
@@ -96,104 +71,43 @@
                     </div>
                 {% else %}
                     <div class="text-center py-5">
-                        <i class="fas fa-book-open fa-4x text-muted mb-4"></i>
+                        <i class="fas fa-calendar-week fa-4x text-muted mb-4"></i>
                         <h5 class="text-muted">暂无选修课程</h5>
-                        <p class="text-muted">请联系管理员进行选课</p>
+                        <p class="text-muted">您的课程表为空，请联系管理员进行选课</p>
                     </div>
                 {% endif %}
             </div>
         </div>
     </div>
 </div>
-
-<!-- 课程统计汇总 -->
-{% if course_stats %}
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-chart-bar me-2"></i>课程统计汇总
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>课程名称</th>
-                                <th>课程代码</th>
-                                <th>任课教师</th>
-                                <th>总课次</th>
-                                <th>出勤</th>
-                                <th>请假</th>
-                                <th>缺勤</th>
-                                <th>出勤率</th>
-                                <th>操作</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for stat in course_stats %}
-                            <tr>
-                                <td>
-                                    <strong>{{ stat.course.course_name }}</strong>
-                                </td>
-                                <td>{{ stat.course.course_id }}</td>
-                                <td>{{ stat.course.teacher.teacher_name }}</td>
-                                <td>
-                                    <span class="badge bg-info">{{ stat.total_events }}</span>
-                                </td>
-                                <td>
-                                    <span class="badge bg-success">{{ stat.attended }}</span>
-                                </td>
-                                <td>
-                                    <span class="badge bg-warning">{{ stat.leave }}</span>
-                                </td>
-                                <td>
-                                    <span class="badge bg-danger">{{ stat.absent }}</span>
-                                </td>
-                                <td>
-                                    <div class="progress" style="height: 20px;">
-                                        <div class="progress-bar" role="progressbar" 
-                                             style="width: {{ stat.attendance_rate }}%"
-                                             aria-valuenow="{{ stat.attendance_rate }}" 
-                                             aria-valuemin="0" aria-valuemax="100">
-                                            {{ stat.attendance_rate }}%
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <a href="{% url 'student_course_detail' stat.course.course_id %}" 
-                                       class="btn btn-sm btn-outline-primary">
-                                        <i class="fas fa-eye me-1"></i>详情
-                                    </a>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endif %}
 {% endblock %}
 
 {% block extra_css %}
 <style>
+.course-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.course-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 15px rgba(0,0,0,.1);
+}
+
 .course-info {
     background-color: #f8f9fa;
-    border-radius: 0.375rem;
-    padding: 0.75rem;
+    border-radius: 0.5rem;
+    padding: 1rem;
 }
 
-.progress {
-    background-color: #e9ecef;
+.info-item {
+    display: flex;
+    align-items: center;
+    padding: 0.25rem 0;
 }
 
-.progress-bar {
-    background-color: var(--primary-color);
+.info-item strong {
+    min-width: 80px;
+    color: #495057;
 }
 
 .card.border-start {
