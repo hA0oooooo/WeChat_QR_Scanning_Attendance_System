@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+
+{% block title %}学生管理 - 微信扫码考勤系统{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4><i class="fas fa-user-graduate me-2"></i>学生管理</h4>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStudentModal">
+        <i class="fas fa-plus me-1"></i>添加学生
+    </button>
+</div>
+
+<!-- 搜索栏 -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-8">
+                <input type="text" class="form-control" name="search" value="{{ search }}" 
+                       placeholder="搜索学号、姓名或专业...">
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-outline-primary me-2">
+                    <i class="fas fa-search me-1"></i>搜索
+                </button>
+                {% if search %}
+                    <a href="{% url 'manage_students' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times me-1"></i>清除
+                    </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 学生列表 -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-list me-2"></i>学生列表</span>
+        <span class="badge bg-primary">共 {{ students.count }} 名学生</span>
+    </div>
+    <div class="card-body">
+        {% if students %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>学号</th>
+                            <th>姓名</th>
+                            <th>性别</th>
+                            <th>专业</th>
+                            <th>院系</th>
+                            <th>账号状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in students %}
+                            <tr>
+                                <td><strong>{{ student.stu_id }}</strong></td>
+                                <td>{{ student.stu_name }}</td>
+                                <td>
+                                    {% if student.stu_sex == 1 %}
+                                        <span class="text-primary"><i class="fas fa-mars me-1"></i>男</span>
+                                    {% else %}
+                                        <span class="text-danger"><i class="fas fa-venus me-1"></i>女</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ student.major.major_name|default:"未设置" }}</td>
+                                <td>{{ student.major.dept.dept_name|default:"未设置" }}</td>
+                                <td>
+                                    {% if student.user %}
+                                        {% if student.user.is_active %}
+                                            <span class="badge bg-success">正常</span>
+                                        {% else %}
+                                            <span class="badge bg-warning">禁用</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="badge bg-secondary">未关联</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" title="编辑">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-outline-info" title="详情">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger" title="删除">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-user-graduate fa-4x text-muted mb-3"></i>
+                <h5 class="text-muted">暂无学生数据</h5>
+                {% if search %}
+                    <p class="text-muted">没有找到匹配"{{ search }}"的学生</p>
+                {% else %}
+                    <p class="text-muted">系统中还没有学生信息</p>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 添加学生模态框 -->
+<div class="modal fade" id="addStudentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-plus me-2"></i>添加学生</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addStudentForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">学号 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="stu_id" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">姓名 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="stu_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">性别 <span class="text-danger">*</span></label>
+                        <select class="form-select" name="stu_sex" required>
+                            <option value="">请选择性别</option>
+                            <option value="1">男</option>
+                            <option value="2">女</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">专业</label>
+                        <select class="form-select" name="major_id">
+                            <option value="">请选择专业</option>
+                            <!-- 这里需要动态加载专业列表 -->
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">微信OpenID</label>
+                        <input type="text" class="form-control" name="openid" placeholder="可选，用于微信登录">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="submitAddStudent()">
+                    <i class="fas fa-save me-1"></i>保存
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function submitAddStudent() {
+    // 这里添加提交逻辑
+    alert('添加学生功能待实现');
+}
+</script>
+{% endblock %} 

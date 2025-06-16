@@ -1,0 +1,245 @@
+{% extends 'base.html' %}
+
+{% block title %}统计报表 - 微信扫码考勤系统{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4><i class="fas fa-chart-bar me-2"></i>统计报表</h4>
+</div>
+
+<!-- 整体统计卡片 -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-user-graduate fa-2x text-primary mb-2"></i>
+                <h5 class="text-dark">{{ total_students }}</h5>
+                <small class="text-muted">学生总数</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-chalkboard-teacher fa-2x text-success mb-2"></i>
+                <h5 class="text-dark">{{ total_teachers }}</h5>
+                <small class="text-muted">教师总数</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-book fa-2x text-info mb-2"></i>
+                <h5 class="text-dark">{{ total_courses }}</h5>
+                <small class="text-muted">课程总数</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-calendar-check fa-2x text-warning mb-2"></i>
+                <h5 class="text-dark">{{ total_events }}</h5>
+                <small class="text-muted">考勤事件</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 课程考勤统计 -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-chart-pie me-2"></i>课程考勤统计</span>
+        <span class="badge bg-primary">共 {{ course_stats|length }} 门课程</span>
+    </div>
+    <div class="card-body">
+        {% if course_stats %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>课程信息</th>
+                            <th>总考勤次数</th>
+                            <th>出勤情况</th>
+                            <th>出勤率</th>
+                            <th>缺勤率</th>
+                            <th>请假率</th>
+                            <th>考勤状态</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stat in course_stats %}
+                            <tr>
+                                <td>
+                                    <div>
+                                        <strong>{{ stat.course.course_name }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ stat.course.course_id }} | {{ stat.course.dept.dept_name }}</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ stat.total_count }} 次</span>
+                                </td>
+                                <td>
+                                    <div class="d-flex gap-1">
+                                        <span class="badge bg-success">出勤 {{ stat.present_count }}</span>
+                                        <span class="badge bg-danger">缺勤 {{ stat.absent_count }}</span>
+                                        <span class="badge bg-warning">请假 {{ stat.leave_count }}</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="progress me-2" style="width: 60px; height: 8px;">
+                                            <div class="progress-bar bg-success" data-width="{{ stat.present_rate }}"></div>
+                                        </div>
+                                        <span class="text-dark fw-bold">{{ stat.present_rate }}%</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="progress me-2" style="width: 60px; height: 8px;">
+                                            <div class="progress-bar bg-danger" data-width="{{ stat.absent_rate }}"></div>
+                                        </div>
+                                        <span class="text-dark">{{ stat.absent_rate }}%</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="progress me-2" style="width: 60px; height: 8px;">
+                                            <div class="progress-bar bg-warning" data-width="{{ stat.leave_rate }}"></div>
+                                        </div>
+                                        <span class="text-dark">{{ stat.leave_rate }}%</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if stat.present_rate >= 90 %}
+                                        <span class="badge bg-success">优秀</span>
+                                    {% elif stat.present_rate >= 80 %}
+                                        <span class="badge bg-primary">良好</span>
+                                    {% elif stat.present_rate >= 70 %}
+                                        <span class="badge bg-warning">一般</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">较差</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-chart-bar fa-4x text-muted mb-3"></i>
+                <h5 class="text-muted">暂无统计数据</h5>
+                <p class="text-muted">系统中还没有考勤记录可供统计</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 考勤趋势图表区域 -->
+{% if course_stats %}
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-pie-chart me-2"></i>整体出勤分布
+            </div>
+            <div class="card-body">
+                <canvas id="attendanceChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-bar-chart me-2"></i>课程出勤率排行
+            </div>
+            <div class="card-body">
+                <canvas id="courseRankChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% if course_stats %}
+<script id="chart-data" type="application/json">{{ chart_data|safe }}</script>
+{% endif %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 设置进度条宽度
+    document.querySelectorAll('.progress-bar').forEach(function(bar) {
+        const width = bar.getAttribute('data-width');
+        if (width) {
+            bar.style.width = width + '%';
+        }
+    });
+
+    // 检查是否有图表数据
+    const chartDataElement = document.getElementById('chart-data');
+    if (chartDataElement) {
+        const chartData = JSON.parse(chartDataElement.textContent);
+
+        // 整体出勤分布饼图
+        const attendanceCanvas = document.getElementById('attendanceChart');
+        if (attendanceCanvas) {
+            const attendanceCtx = attendanceCanvas.getContext('2d');
+            new Chart(attendanceCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['出勤', '缺勤', '请假'],
+                    datasets: [{
+                        data: [chartData.present_total, chartData.absent_total, chartData.leave_total],
+                        backgroundColor: ['#28a745', '#dc3545', '#ffc107']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        // 课程出勤率排行柱状图
+        const courseRankCanvas = document.getElementById('courseRankChart');
+        if (courseRankCanvas) {
+            const courseRankCtx = courseRankCanvas.getContext('2d');
+            new Chart(courseRankCtx, {
+                type: 'bar',
+                data: {
+                    labels: chartData.course_names,
+                    datasets: [{
+                        label: '出勤率(%)',
+                        data: chartData.present_rates,
+                        backgroundColor: '#417690'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+    }
+});
+</script>
+{% endblock %} 

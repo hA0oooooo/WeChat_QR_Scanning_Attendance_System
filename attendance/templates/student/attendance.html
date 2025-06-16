@@ -21,12 +21,12 @@
                             <div class="row">
                                 <div class="col-6">
                                     <div class="border-end">
-                                        <h5 class="text-primary mb-0">{{ stat.attendance_rate }}%</h5>
+                                        <h5 class="text-dark mb-0">{{ stat.attendance_rate }}%</h5>
                                         <small class="text-muted">出勤率</small>
                                     </div>
                                 </div>
                                 <div class="col-6">
-                                    <h5 class="text-info mb-0">{{ stat.total }}</h5>
+                                    <h5 class="text-dark mb-0">{{ stat.total }}</h5>
                                     <small class="text-muted">总课次</small>
                                 </div>
                             </div>
@@ -62,9 +62,6 @@
                     <i class="fas fa-clipboard-list me-2"></i>考勤记录详情
                 </h5>
                 <div>
-                    <a href="{% url 'attendance_statistics' %}" class="btn btn-outline-info btn-sm me-2">
-                        <i class="fas fa-chart-line me-1"></i>详细统计
-                    </a>
                     <span class="badge bg-primary">共 {{ attendance_records|length }} 条记录</span>
                 </div>
             </div>
@@ -99,8 +96,6 @@
                                     <th>日期</th>
                                     <th>时间段</th>
                                     <th>考勤状态</th>
-                                    <th>签到时间</th>
-                                    <th>备注</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -122,7 +117,7 @@
                                         </div>
                                     </td>
                                     <td>
-                                        {{ record.event.scan_start_time }} - {{ record.event.scan_end_time }}
+                                        {{ record.event.scan_start_time|time:"H:i" }} - {{ record.event.scan_end_time|time:"H:i" }}
                                     </td>
                                     <td>
                                         {% if record.status == 1 %}
@@ -137,42 +132,10 @@
                                             <span class="badge bg-warning">
                                                 <i class="fas fa-calendar-alt me-1"></i>请假
                                             </span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if record.scan_time %}
-                                            <div>
-                                                <strong>{{ record.scan_time|date:"H:i:s" }}</strong>
-                                                <br>
-                                                <small class="text-muted">
-                                                    {% if record.scan_time <= record.event.scan_end_time %}
-                                                        <span class="text-success">
-                                                            <i class="fas fa-check-circle me-1"></i>准时
-                                                        </span>
-                                                    {% else %}
-                                                        <span class="text-warning">
-                                                            <i class="fas fa-clock me-1"></i>迟到
-                                                        </span>
-                                                    {% endif %}
-                                                </small>
-                                            </div>
-                                        {% else %}
-                                            <span class="text-muted">-</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if record.status == 1 %}
-                                            <small class="text-success">
-                                                <i class="fas fa-thumbs-up me-1"></i>正常出勤
-                                            </small>
-                                        {% elif record.status == 2 %}
-                                            <small class="text-danger">
-                                                <i class="fas fa-exclamation-triangle me-1"></i>未签到
-                                            </small>
-                                        {% elif record.status == 3 %}
-                                            <small class="text-info">
-                                                <i class="fas fa-info-circle me-1"></i>已批准请假
-                                            </small>
+                                        {% elif record.status == 4 %}
+                                            <span class="badge bg-secondary">
+                                                <i class="fas fa-clock me-1"></i>未开始
+                                            </span>
                                         {% endif %}
                                     </td>
                                 </tr>
@@ -195,46 +158,7 @@
     </div>
 </div>
 
-<!-- 快速操作 -->
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-bolt me-2"></i>快速操作
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-3 col-6 mb-3">
-                        <a href="{% url 'student_courses' %}" class="btn btn-outline-primary w-100">
-                            <i class="fas fa-book fa-2x mb-2"></i><br>
-                            我的课程
-                        </a>
-                    </div>
-                    <div class="col-md-3 col-6 mb-3">
-                        <a href="{% url 'submit_leave_request' %}" class="btn btn-outline-warning w-100">
-                            <i class="fas fa-calendar-plus fa-2x mb-2"></i><br>
-                            申请请假
-                        </a>
-                    </div>
-                    <div class="col-md-3 col-6 mb-3">
-                        <a href="{% url 'leave_request_history' %}" class="btn btn-outline-info w-100">
-                            <i class="fas fa-history fa-2x mb-2"></i><br>
-                            请假记录
-                        </a>
-                    </div>
-                    <div class="col-md-3 col-6 mb-3">
-                        <a href="{% url 'attendance_statistics' %}" class="btn btn-outline-success w-100">
-                            <i class="fas fa-chart-line fa-2x mb-2"></i><br>
-                            出勤统计
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+
 {% endblock %}
 
 {% block extra_js %}

@@ -4,9 +4,10 @@ from django.contrib import messages
 from django.utils import timezone
 from django.http import JsonResponse, HttpResponse
 from django.db.models import Count, Q
+from django.contrib.auth import authenticate, update_session_auth_hash
 from ..models import (
     Course, AttendanceEvent, Attendance, LeaveRequest, Enrollment,
-    Student, STATUS_PRESENT, STATUS_ABSENT, STATUS_LEAVE,
+    Student, STATUS_PRESENT, STATUS_ABSENT, STATUS_LEAVE, STATUS_NOT_STARTED,
     LEAVE_PENDING, LEAVE_APPROVED, LEAVE_REJECTED
 )
 from datetime import datetime, date
@@ -14,59 +15,62 @@ import json
 
 @login_required
 def student_dashboard(request):
-    """学生仪表盘"""
-    # 获取学生对象
+    """学生仪表板"""
     student = request.user.student
     
-    # 使用演示时间
-    now = datetime(2025, 6, 23, 8, 0, 0)
+    # 模拟当前时间为2025年6月18日11:00（课程进行中）
+    now = datetime(2025, 6, 18, 11, 0)
     today = now.date()
-    
-    # 获取学生的选课信息
-    enrollments = Enrollment.objects.filter(student=student).select_related('course')
-    courses = [enrollment.course for enrollment in enrollments]
     
     # 获取今日考勤事件
     today_events = AttendanceEvent.objects.filter(
-        course__in=courses,
+        course__enrollment__student=student,
         event_date=today
-    ).select_related('course')
+    ).select_related('course').distinct()
     
-    # 获取最近的考勤记录
+    # 为今日事件添加考勤状态
+    events_with_attendance = []
+    for event in today_events:
+        try:
+            enrollment = Enrollment.objects.get(student=student, course=event.course)
+            attendance = Attendance.objects.get(enrollment=enrollment, event=event)
+            event.current_attendance = attendance
+        except (Enrollment.DoesNotExist, Attendance.DoesNotExist):
+            event.current_attendance = None
+        events_with_attendance.append(event)
+    
+    # 获取最近考勤记录
     recent_attendance = Attendance.objects.filter(
         enrollment__student=student
-    ).select_related('event__course').order_by('-event__event_date', '-event__scan_start_time')[:5]
+    ).select_related('event__course').order_by('-event__event_date')[:5]
     
-    # 获取待审批的请假申请
-    pending_leave_requests = LeaveRequest.objects.filter(
-        enrollment__student=student,
-        approval_status=LEAVE_PENDING
-    ).select_related('event__course').order_by('-submit_time')[:3]
+    # 计算统计数据 - 只计算已开始的课程（排除未开始状态）
+    all_attendance = Attendance.objects.filter(
+        enrollment__student=student
+    ).exclude(status=STATUS_NOT_STARTED)  # 排除未开始的课程
     
-    # 统计数据
-    total_events = AttendanceEvent.objects.filter(course__in=courses).count()
-    attended_count = Attendance.objects.filter(
-        enrollment__student=student,
-        status=STATUS_PRESENT
-    ).count()
-    leave_count = Attendance.objects.filter(
-        enrollment__student=student,
-        status=STATUS_LEAVE
-    ).count()
-    absent_count = Attendance.objects.filter(
-        enrollment__student=student,
-        status=STATUS_ABSENT
-    ).count()
+    total_events = all_attendance.count()
+    attended_count = all_attendance.filter(status=STATUS_PRESENT).count()
+    leave_count = all_attendance.filter(status=STATUS_LEAVE).count()
+    absent_count = all_attendance.filter(status=STATUS_ABSENT).count()
     
     # 计算出勤率
-    attendance_rate = round((attended_count / total_events * 100), 1) if total_events > 0 else 0
+    if total_events > 0:
+        attendance_rate = round((attended_count / total_events) * 100, 1)
+    else:
+        attendance_rate = 0.0
+    
+    # 获取待审批的请假申请
+    pending_leaves = LeaveRequest.objects.filter(
+        enrollment__student=student,
+        approval_status=LEAVE_PENDING
+    ).select_related('event__course').order_by('-submit_time')
     
     context = {
         'student': student,
-        'courses': courses,
-        'today_events': today_events,
+        'today_events': events_with_attendance,
         'recent_attendance': recent_attendance,
-        'pending_leave_requests': pending_leave_requests,
+        'pending_leaves': pending_leaves,
         'stats': {
             'total_events': total_events,
             'attended_count': attended_count,
@@ -86,41 +90,23 @@ def student_courses(request):
     # 获取学生的选课记录
     enrollments = Enrollment.objects.filter(student=student).select_related('course', 'course__dept')
     
-    # 为每个课程添加统计信息
-    course_stats = []
+    # 为每个课程添加课表信息
+    course_info = []
     for enrollment in enrollments:
         course = enrollment.course
         
-        # 统计该课程的考勤情况
-        total_events = AttendanceEvent.objects.filter(course=course).count()
-        attended = Attendance.objects.filter(
-            enrollment=enrollment,
-            status=STATUS_PRESENT
-        ).count()
-        leave = Attendance.objects.filter(
-            enrollment=enrollment,
-            status=STATUS_LEAVE
-        ).count()
-        absent = Attendance.objects.filter(
-            enrollment=enrollment,
-            status=STATUS_ABSENT
-        ).count()
-        
-        attendance_rate = round((attended / total_events * 100), 1) if total_events > 0 else 0
-        
-        course_stats.append({
+        # 使用默认的课程信息（郑老师、HGX508等）
+        course_info.append({
             'enrollment': enrollment,
             'course': course,
-            'total_events': total_events,
-            'attended': attended,
-            'leave': leave,
-            'absent': absent,
-            'attendance_rate': attendance_rate,
+            'teacher_name': '郑老师',  # 直接使用字符串而不是对象
+            'class_time': '星期三 第3-5节 (9:55-12:30)',
+            'location': 'HGX508',
         })
     
     context = {
         'student': student,
-        'course_stats': course_stats,
+        'course_info': course_info,
     }
     return render(request, 'student/courses.html', context)
 
@@ -175,9 +161,13 @@ def student_attendance(request):
         enrollment__student=student
     ).select_related('event__course', 'enrollment__course').order_by('-event__event_date', '-event__scan_start_time')
     
-    # 按课程分组统计
+    # 按课程分组统计 - 只统计已开始的课程
     course_stats = {}
     for record in attendance_records:
+        # 排除未开始的课程
+        if record.status == STATUS_NOT_STARTED:
+            continue
+            
         course_id = record.enrollment.course.course_id
         if course_id not in course_stats:
             course_stats[course_id] = {
@@ -227,15 +217,20 @@ def submit_leave_request(request):
             event = AttendanceEvent.objects.get(event_id=event_id)
             enrollment = Enrollment.objects.get(student=student, course=event.course)
             
-            # 检查是否已经有考勤记录
-            if Attendance.objects.filter(enrollment=enrollment, event=event).exists():
-                messages.error(request, '该课程已有考勤记录，无法申请请假')
-                return redirect('submit_leave_request')
-            
             # 检查是否已经提交过请假申请
             if LeaveRequest.objects.filter(enrollment=enrollment, event=event).exists():
                 messages.error(request, '您已经为该课程提交过请假申请')
                 return redirect('submit_leave_request')
+            
+            # 检查考勤状态，只有未开始的课程才能申请请假
+            try:
+                attendance = Attendance.objects.get(enrollment=enrollment, event=event)
+                if attendance.status != STATUS_NOT_STARTED:
+                    messages.error(request, '只能对未开始的课程申请请假')
+                    return redirect('submit_leave_request')
+            except Attendance.DoesNotExist:
+                # 如果没有考勤记录，也可以申请请假
+                pass
             
             # 创建请假申请
             LeaveRequest.objects.create(
@@ -246,7 +241,7 @@ def submit_leave_request(request):
             )
             
             messages.success(request, '请假申请已提交，等待教师审批')
-            return redirect('leave_request_history')
+            return redirect('submit_leave_request')
             
         except (AttendanceEvent.DoesNotExist, Enrollment.DoesNotExist):
             messages.error(request, '无效的考勤事件或未选修该课程')
@@ -255,27 +250,39 @@ def submit_leave_request(request):
     # GET请求：显示可申请请假的考勤事件
     enrollments = Enrollment.objects.filter(student=student)
     
-    # 获取未来的考勤事件（可以申请请假）
-    future_events = AttendanceEvent.objects.filter(
-        course__in=enrollments.values_list('course', flat=True),
-        event_date__gte=date.today()
-    ).select_related('course')
+    # 获取所有考勤事件（包括未来和当前的）
+    all_events = AttendanceEvent.objects.filter(
+        course__in=enrollments.values_list('course', flat=True)
+    ).select_related('course').order_by('event_date')
     
-    # 过滤掉已有考勤记录或已申请请假的事件
+    # 过滤出可以申请请假的事件（未开始状态且未申请过请假）
     available_events = []
-    for event in future_events:
+    for event in all_events:
         enrollment = enrollments.get(course=event.course)
         
-        # 检查是否已有考勤记录或请假申请
-        has_attendance = Attendance.objects.filter(enrollment=enrollment, event=event).exists()
+        # 检查是否已申请过请假
         has_leave_request = LeaveRequest.objects.filter(enrollment=enrollment, event=event).exists()
-        
-        if not has_attendance and not has_leave_request:
+        if has_leave_request:
+            continue
+            
+        # 检查考勤状态，只有未开始的才能申请请假
+        try:
+            attendance = Attendance.objects.get(enrollment=enrollment, event=event)
+            if attendance.status == STATUS_NOT_STARTED:
+                available_events.append(event)
+        except Attendance.DoesNotExist:
+            # 没有考勤记录的也可以申请
             available_events.append(event)
+    
+    # 获取所有请假申请历史
+    leave_requests = LeaveRequest.objects.filter(
+        enrollment__student=student
+    ).select_related('event__course', 'approver').order_by('-submit_time')
     
     context = {
         'student': student,
         'available_events': available_events,
+        'leave_requests': leave_requests,
     }
     return render(request, 'student/leave_request.html', context)
 
@@ -300,19 +307,80 @@ def student_profile(request):
     """学生个人信息"""
     student = request.user.student
     
-    if request.method == 'POST':
-        # 处理信息更新（这里可以扩展为信息变更申请）
-        messages.info(request, '个人信息变更需要提交申请，请联系管理员')
-        return redirect('student_profile')
-    
-    # 获取学生的选课信息
-    enrollments = Enrollment.objects.filter(student=student).select_related('course')
-    
     context = {
         'student': student,
-        'enrollments': enrollments,
+        'user': request.user,
     }
     return render(request, 'student/profile.html', context)
+
+@login_required
+def update_profile(request):
+    """更新个人信息"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': '请求方法错误'})
+    
+    try:
+        data = json.loads(request.body)
+        field_type = data.get('field_type')
+        new_value = data.get('new_value', '').strip()
+        
+        if not field_type or not new_value:
+            return JsonResponse({'success': False, 'message': '参数不完整'})
+        
+        student = request.user.student
+        
+        if field_type == 'name':
+            if len(new_value) > 50:
+                return JsonResponse({'success': False, 'message': '姓名长度不能超过50个字符'})
+            student.stu_name = new_value
+            student.save()
+            # 同时更新User表的first_name
+            request.user.first_name = new_value
+            request.user.save()
+            return JsonResponse({'success': True, 'message': '姓名更新成功'})
+        else:
+            return JsonResponse({'success': False, 'message': '不支持的字段类型'})
+            
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'message': '数据格式错误'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'更新失败：{str(e)}'})
+
+@login_required
+def change_password(request):
+    """修改密码"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': '请求方法错误'})
+    
+    try:
+        data = json.loads(request.body)
+        old_password = data.get('old_password')
+        new_password = data.get('new_password')
+        
+        if not old_password or not new_password:
+            return JsonResponse({'success': False, 'message': '参数不完整'})
+        
+        # 验证旧密码
+        if not authenticate(username=request.user.username, password=old_password):
+            return JsonResponse({'success': False, 'message': '当前密码错误'})
+        
+        # 验证新密码长度
+        if len(new_password) < 8:
+            return JsonResponse({'success': False, 'message': '新密码长度至少8位'})
+        
+        # 更新密码
+        request.user.set_password(new_password)
+        request.user.save()
+        
+        # 更新会话，避免用户被登出
+        update_session_auth_hash(request, request.user)
+        
+        return JsonResponse({'success': True, 'message': '密码修改成功'})
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'message': '数据格式错误'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'密码修改失败：{str(e)}'})
 
 @login_required
 def attendance_statistics(request):

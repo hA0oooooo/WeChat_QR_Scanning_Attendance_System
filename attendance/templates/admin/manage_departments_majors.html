@@ -1,0 +1,489 @@
+{% extends 'base.html' %}
+
+{% block title %}管理院系 - 微信扫码考勤系统{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4><i class="fas fa-building me-2"></i>管理院系</h4>
+    <div class="btn-group">
+        <button class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown">
+            <i class="fas fa-plus me-1"></i>新增
+        </button>
+        <ul class="dropdown-menu">
+            <li><button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#addDepartmentModal">
+                <i class="fas fa-building me-1"></i>新增院系
+            </button></li>
+            <li><button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#addMajorModal">
+                <i class="fas fa-graduation-cap me-1"></i>新增专业
+            </button></li>
+        </ul>
+    </div>
+</div>
+
+<div class="row">
+    <!-- 院系管理 -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-building me-2"></i>院系列表</span>
+                <span class="badge bg-primary">{{ departments.count }} 个院系</span>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>院系名称</th>
+                                <th>专业数</th>
+                                <th>学生数</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for dept in departments %}
+                                <tr>
+                                    <td><strong>{{ dept.dept_name }}</strong></td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ dept.major_count }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ dept.student_count }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-primary" title="编辑" data-bs-toggle="modal" data-bs-target="#editDepartmentModal" onclick="editDepartment('{{ dept.dept_id }}', '{{ dept.dept_name }}')">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-outline-danger" title="删除" onclick="deleteDepartment('{{ dept.dept_id }}', '{{ dept.dept_name }}')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-4">
+                                        <i class="fas fa-building fa-2x mb-2"></i><br>
+                                        暂无院系数据
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 专业管理 -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-graduation-cap me-2"></i>专业列表</span>
+                <span class="badge bg-primary">{{ majors.count }} 个专业</span>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>专业名称</th>
+                                <th>所属院系</th>
+                                <th>学生数</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for major in majors %}
+                                <tr>
+                                    <td><strong>{{ major.major_name }}</strong></td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ major.dept.dept_name }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ major.student_count }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-primary" title="编辑" data-bs-toggle="modal" data-bs-target="#editMajorModal" onclick="editMajor('{{ major.major_id }}', '{{ major.major_name }}', '{{ major.dept.dept_id }}')">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-outline-danger" title="删除" onclick="deleteMajor('{{ major.major_id }}', '{{ major.major_name }}')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-4">
+                                        <i class="fas fa-graduation-cap fa-2x mb-2"></i><br>
+                                        暂无专业数据
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 统计概览 -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-chart-pie me-2"></i>组织架构概览</h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-4">
+                        <div class="border-end">
+                            <h4 class="text-primary mb-1">{{ departments.count }}</h4>
+                            <small class="text-muted">院系总数</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="border-end">
+                            <h4 class="text-primary mb-1">{{ majors.count }}</h4>
+                            <small class="text-muted">专业总数</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <h4 class="text-primary mb-1">{{ teacher_count }}</h4>
+                        <small class="text-muted">教师总数</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 新增院系模态框 -->
+<div class="modal fade" id="addDepartmentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-plus me-2"></i>新增院系</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addDepartmentForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">院系名称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="dept_name" 
+                               placeholder="请输入院系名称" required>
+                        <div class="form-text">例如：计算机科学与技术学院</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="addDepartment()">
+                    <i class="fas fa-save me-1"></i>保存
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 新增专业模态框 -->
+<div class="modal fade" id="addMajorModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-plus me-2"></i>新增专业</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addMajorForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">专业名称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="major_name" 
+                               placeholder="请输入专业名称" required>
+                        <div class="form-text">例如：计算机科学与技术</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">所属院系 <span class="text-danger">*</span></label>
+                        <select class="form-select" name="dept_id" required>
+                            <option value="">请选择院系</option>
+                            {% for dept in departments %}
+                                <option value="{{ dept.dept_id }}">{{ dept.dept_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="addMajor()">
+                    <i class="fas fa-save me-1"></i>保存
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑院系模态框 -->
+<div class="modal fade" id="editDepartmentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-edit me-2"></i>编辑院系</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editDepartmentForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="dept_id" id="edit_dept_id">
+                    <div class="mb-3">
+                        <label class="form-label">院系名称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="dept_name" id="edit_dept_name" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="updateDepartment()">
+                    <i class="fas fa-save me-1"></i>保存
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑专业模态框 -->
+<div class="modal fade" id="editMajorModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-edit me-2"></i>编辑专业</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editMajorForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="major_id" id="edit_major_id">
+                    <div class="mb-3">
+                        <label class="form-label">专业名称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="major_name" id="edit_major_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">所属院系 <span class="text-danger">*</span></label>
+                        <select class="form-select" name="dept_id" id="edit_major_dept" required>
+                            {% for dept in departments %}
+                                <option value="{{ dept.dept_id }}">{{ dept.dept_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="updateMajor()">
+                    <i class="fas fa-save me-1"></i>保存
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 添加院系函数
+function addDepartment() {
+    const formData = new FormData(document.getElementById('addDepartmentForm'));
+    const data = {
+        'dept_name': formData.get('dept_name')
+    };
+    
+    if (!data.dept_name) {
+        alert('请输入院系名称！');
+        return;
+    }
+    
+    fetch('/api/add-department/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('添加成功！');
+            location.reload();
+        } else {
+            alert('添加失败：' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('操作失败：' + error);
+    });
+}
+
+// 添加专业函数
+function addMajor() {
+    const formData = new FormData(document.getElementById('addMajorForm'));
+    const data = {
+        'major_name': formData.get('major_name'),
+        'dept_id': formData.get('dept_id')
+    };
+    
+    if (!data.major_name || !data.dept_id) {
+        alert('请填写完整信息！');
+        return;
+    }
+    
+    fetch('/api/add-major/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('添加成功！');
+            location.reload();
+        } else {
+            alert('添加失败：' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('操作失败：' + error);
+    });
+}
+
+// 院系操作函数
+function editDepartment(id, name) {
+    document.getElementById('edit_dept_id').value = id;
+    document.getElementById('edit_dept_name').value = name;
+}
+
+function deleteDepartment(id, name) {
+    if (confirm(`确定要删除院系 "${name}" 吗？\n此操作将同时删除该院系下的所有专业！\n此操作不可恢复！`)) {
+        fetch('/api/delete-department/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({'dept_id': id})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('删除成功！');
+                location.reload();
+            } else {
+                alert('删除失败：' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('操作失败：' + error);
+        });
+    }
+}
+
+function updateDepartment() {
+    const formData = new FormData(document.getElementById('editDepartmentForm'));
+    const data = {
+        'dept_id': formData.get('dept_id'),
+        'dept_name': formData.get('dept_name')
+    };
+    
+    fetch('/api/update-department/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('更新成功！');
+            location.reload();
+        } else {
+            alert('更新失败：' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('操作失败：' + error);
+    });
+}
+
+// 专业操作函数
+function editMajor(id, name, deptId) {
+    document.getElementById('edit_major_id').value = id;
+    document.getElementById('edit_major_name').value = name;
+    document.getElementById('edit_major_dept').value = deptId;
+}
+
+function deleteMajor(id, name) {
+    if (confirm(`确定要删除专业 "${name}" 吗？\n此操作将影响该专业下的所有学生！\n此操作不可恢复！`)) {
+        fetch('/api/delete-major/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({'major_id': id})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('删除成功！');
+                location.reload();
+            } else {
+                alert('删除失败：' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('操作失败：' + error);
+        });
+    }
+}
+
+function updateMajor() {
+    const formData = new FormData(document.getElementById('editMajorForm'));
+    const data = {
+        'major_id': formData.get('major_id'),
+        'major_name': formData.get('major_name'),
+        'dept_id': formData.get('dept_id')
+    };
+    
+    fetch('/api/update-major/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('更新成功！');
+            location.reload();
+        } else {
+            alert('更新失败：' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('操作失败：' + error);
+    });
+}
+</script>
+{% endblock %} 

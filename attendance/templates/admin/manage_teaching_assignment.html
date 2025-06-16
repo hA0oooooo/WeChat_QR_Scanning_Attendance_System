@@ -1,0 +1,347 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}教学安排管理{% endblock %}
+
+{% block extra_css %}
+<style>
+    .course-info {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    .teaching-card {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        transition: all 0.3s ease;
+    }
+    .teaching-card:hover {
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 面包屑导航 -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'admin_dashboard' %}">管理面板</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'manage_courses' %}">课程管理</a></li>
+            <li class="breadcrumb-item active">教学安排管理</li>
+        </ol>
+    </nav>
+
+    <!-- 课程信息卡片 -->
+    <div class="course-info">
+        <div class="row">
+            <div class="col-md-6">
+                <h4><i class="fas fa-book me-2"></i>{{ course.course_name }}</h4>
+                <p class="mb-1"><strong>课程编号：</strong>{{ course.course_id }}</p>
+                <p class="mb-1"><strong>开课院系：</strong>{{ course.dept.dept_name }}</p>
+            </div>
+            <div class="col-md-6 text-end">
+                <button class="btn btn-light" onclick="addTeachingAssignment()">
+                    <i class="fas fa-plus me-1"></i>添加教学安排
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 教学安排列表 -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-chalkboard-teacher me-2"></i>教学安排列表</span>
+            <span class="badge bg-primary">共 {{ teaching_assignments.count }} 项安排</span>
+        </div>
+        <div class="card-body">
+            {% if teaching_assignments %}
+                <div class="row">
+                    {% for assignment in teaching_assignments %}
+                        <div class="col-md-6 col-lg-4">
+                            <div class="teaching-card">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div>
+                                        <h6 class="mb-1">{{ assignment.teacher.teacher_name }}</h6>
+                                        <small class="text-muted">工号：{{ assignment.teacher.teacher_id }}</small>
+                                    </div>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary edit-btn" title="编辑" 
+                                                data-assignment-id="{{ assignment.assignment_id }}" 
+                                                data-teacher-id="{{ assignment.teacher.teacher_id }}">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger delete-btn" title="删除"
+                                                data-assignment-id="{{ assignment.assignment_id }}" 
+                                                data-teacher-name="{{ assignment.teacher.teacher_name }}">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <span class="badge bg-secondary">{{ assignment.teacher.dept.dept_name }}</span>
+                                </div>
+                                
+                                <!-- 课程时间安排 -->
+                                {% if assignment.classschedule_set.all %}
+                                    <div class="mt-3">
+                                        <h6 class="text-muted">上课时间：</h6>
+                                        {% for schedule in assignment.classschedule_set.all %}
+                                            <div class="mb-2">
+                                                <span class="badge bg-info">{{ schedule.get_weekday_display }}</span>
+                                                <span class="text-muted">第{{ schedule.start_period }}-{{ schedule.end_period }}节</span>
+                                                <small class="d-block text-muted">{{ schedule.location }}</small>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                
+                                <div class="mt-3">
+                                    <button class="btn btn-sm btn-outline-success schedule-btn" 
+                                            data-assignment-id="{{ assignment.assignment_id }}" 
+                                            data-teacher-name="{{ assignment.teacher.teacher_name }}">
+                                        <i class="fas fa-calendar me-1"></i>管理时间安排
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-chalkboard-teacher fa-4x text-muted mb-3"></i>
+                    <h5 class="text-muted">暂无教学安排</h5>
+                    <p class="text-muted">该课程还没有安排教师</p>
+                    <button class="btn btn-primary" onclick="addTeachingAssignment()">
+                        <i class="fas fa-plus me-1"></i>添加教学安排
+                    </button>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- 添加教学安排模态框 -->
+<div class="modal fade" id="addTeachingAssignmentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-plus me-2"></i>添加教学安排</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addTeachingAssignmentForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="course_id" value="{{ course.course_id }}">
+                    <div class="mb-3">
+                        <label class="form-label">选择教师 <span class="text-danger">*</span></label>
+                        <select class="form-select" name="teacher_id" id="teacher_select" required>
+                            <option value="">请选择教师</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveTeachingAssignment()">
+                    <i class="fas fa-save me-1"></i>保存
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑教学安排模态框 -->
+<div class="modal fade" id="editTeachingAssignmentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-edit me-2"></i>编辑教学安排</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editTeachingAssignmentForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="assignment_id" id="edit_assignment_id">
+                    <div class="mb-3">
+                        <label class="form-label">选择教师 <span class="text-danger">*</span></label>
+                        <select class="form-select" name="teacher_id" id="edit_teacher_select" required>
+                            <option value="">请选择教师</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="updateTeachingAssignment()">
+                    <i class="fas fa-save me-1"></i>保存
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 页面加载时获取教师列表
+document.addEventListener('DOMContentLoaded', function() {
+    loadTeachers();
+    
+    // 绑定事件监听器
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.edit-btn')) {
+            const btn = e.target.closest('.edit-btn');
+            editTeachingAssignment(btn.dataset.assignmentId, btn.dataset.teacherId);
+        }
+        if (e.target.closest('.delete-btn')) {
+            const btn = e.target.closest('.delete-btn');
+            deleteTeachingAssignment(btn.dataset.assignmentId, btn.dataset.teacherName);
+        }
+        if (e.target.closest('.schedule-btn')) {
+            const btn = e.target.closest('.schedule-btn');
+            manageSchedule(btn.dataset.assignmentId, btn.dataset.teacherName);
+        }
+    });
+});
+
+function loadTeachers() {
+    fetch('/api/get-teachers/')
+        .then(response => response.json())
+        .then(data => {
+            const teacherSelects = [
+                document.getElementById('teacher_select'),
+                document.getElementById('edit_teacher_select')
+            ];
+            teacherSelects.forEach(select => {
+                if (select) {
+                    select.innerHTML = '<option value="">请选择教师</option>';
+                    data.teachers.forEach(teacher => {
+                        select.innerHTML += `<option value="${teacher.teacher_id}">${teacher.teacher_name} (${teacher.teacher_id}) - ${teacher.dept_name}</option>`;
+                    });
+                }
+            });
+        });
+}
+
+function addTeachingAssignment() {
+    new bootstrap.Modal(document.getElementById('addTeachingAssignmentModal')).show();
+}
+
+function saveTeachingAssignment() {
+    const formData = new FormData(document.getElementById('addTeachingAssignmentForm'));
+    const data = {
+        'course_id': formData.get('course_id'),
+        'teacher_id': formData.get('teacher_id')
+    };
+    
+    if (!data.teacher_id) {
+        alert('请选择教师！');
+        return;
+    }
+    
+    fetch('/api/add-teaching-assignment/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('添加成功！');
+            location.reload();
+        } else {
+            alert('添加失败：' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('操作失败：' + error);
+    });
+}
+
+function editTeachingAssignment(assignmentId, teacherId) {
+    document.getElementById('edit_assignment_id').value = assignmentId;
+    
+    // 设置教师选择
+    setTimeout(() => {
+        if (teacherId) {
+            document.getElementById('edit_teacher_select').value = teacherId;
+        }
+    }, 100);
+    
+    new bootstrap.Modal(document.getElementById('editTeachingAssignmentModal')).show();
+}
+
+function updateTeachingAssignment() {
+    const formData = new FormData(document.getElementById('editTeachingAssignmentForm'));
+    const data = {
+        'assignment_id': formData.get('assignment_id'),
+        'teacher_id': formData.get('teacher_id')
+    };
+    
+    if (!data.teacher_id) {
+        alert('请选择教师！');
+        return;
+    }
+    
+    fetch('/api/update-teaching-assignment/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('更新成功！');
+            location.reload();
+        } else {
+            alert('更新失败：' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('操作失败：' + error);
+    });
+}
+
+function deleteTeachingAssignment(assignmentId, teacherName) {
+    if (confirm(`确定要删除教师 "${teacherName}" 的教学安排吗？\n此操作不可恢复！`)) {
+        fetch('/api/delete-teaching-assignment/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({'assignment_id': assignmentId})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('删除成功！');
+                location.reload();
+            } else {
+                alert('删除失败：' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('操作失败：' + error);
+        });
+    }
+}
+
+function manageSchedule(assignmentId, teacherName) {
+    // 跳转到时间安排管理页面
+    window.location.href = `/manage/schedule/${assignmentId}/`;
+}
+</script>
+{% endblock %} 
