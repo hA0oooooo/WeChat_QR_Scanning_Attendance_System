@@ -154,9 +154,9 @@ CACHES = {
     }
 }
 
-# 统一伪造当前时间为2025-06-25 10:00:00（东八区）
+# 统一伪造当前时间为2025-06-18 10:00:00（东八区）
 def fake_now():
-    return timezone.make_aware(datetime.datetime(2025, 6, 25, 10, 0, 0))
+    return timezone.make_aware(datetime.datetime(2025, 6, 18, 10, 0, 0))
 
 timezone.now = fake_now
 
