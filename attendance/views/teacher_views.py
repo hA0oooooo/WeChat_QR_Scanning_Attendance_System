@@ -149,12 +149,20 @@ def approve_leave_request(request, leave_request_id):
         
         # 如果批准请假，更新考勤记录
         if approval_status == 2:  # LEAVE_APPROVED
-            Attendance.objects.create(
+            # 使用 get_or_create 避免唯一约束冲突
+            attendance, created = Attendance.objects.get_or_create(
                 enrollment=leave_request.enrollment,
                 event=leave_request.event,
-                status=3,  # STATUS_LEAVE
-                notes=approver_notes
+                defaults={
+                    'status': 3,  # STATUS_LEAVE
+                    'notes': approver_notes
+                }
             )
+            # 如果记录已存在，更新状态为请假
+            if not created:
+                attendance.status = 3  # STATUS_LEAVE
+                attendance.notes = approver_notes
+                attendance.save()
         
         messages.success(request, '请假申请已审批')
         return redirect('leave_request_list')
