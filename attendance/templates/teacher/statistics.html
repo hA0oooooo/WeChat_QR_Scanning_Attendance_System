@@ -3,48 +3,8 @@
 {% block title %}统计报表 - 微信扫码考勤系统{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h4><i class="fas fa-chart-bar me-2"></i>统计报表</h4>
-</div>
-
-<!-- 整体统计卡片 -->
-<div class="row mb-4">
-    <div class="col-md-3">
-        <div class="card text-center">
-            <div class="card-body">
-                <i class="fas fa-user-graduate fa-2x text-primary mb-2"></i>
-                <h5 class="text-dark">{{ total_students }}</h5>
-                <small class="text-muted">学生总数</small>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-center">
-            <div class="card-body">
-                <i class="fas fa-chalkboard-teacher fa-2x text-success mb-2"></i>
-                <h5 class="text-dark">{{ total_teachers }}</h5>
-                <small class="text-muted">教师总数</small>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-center">
-            <div class="card-body">
-                <i class="fas fa-book fa-2x text-info mb-2"></i>
-                <h5 class="text-dark">{{ total_courses }}</h5>
-                <small class="text-muted">课程总数</small>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-center">
-            <div class="card-body">
-                <i class="fas fa-calendar-check fa-2x text-warning mb-2"></i>
-                <h5 class="text-dark">{{ total_events }}</h5>
-                <small class="text-muted">考勤事件</small>
-            </div>
-        </div>
-    </div>
+<div class="mb-4">
+    <h4><i class="fas fa-chart-bar me-2"></i>我的课程统计报表</h4>
 </div>
 
 <!-- 课程考勤统计 -->
@@ -79,9 +39,9 @@
                                         <small class="text-muted">{{ stat.course.course_id }} | {{ stat.course.dept.dept_name }}</small>
                                         {% if stat.event_stats %}
                                             <br>
-                                                                        <button class="btn btn-sm btn-primary mt-1" type="button" data-bs-toggle="collapse" data-bs-target="#course-{{ stat.course.course_id|slugify }}" aria-expanded="false">
-                                <i class="fas fa-chart-line me-1"></i>查看单次考勤
-                            </button>
+                                            <button class="btn btn-sm btn-dark mt-1" type="button" data-bs-toggle="collapse" data-bs-target="#course-{{ stat.course.course_id|slugify }}" aria-expanded="false">
+                                                <i class="fas fa-chart-line me-1"></i>查看单次考勤
+                                            </button>
                                         {% endif %}
                                     </div>
                                 </td>
@@ -180,7 +140,7 @@
             <div class="text-center py-5">
                 <i class="fas fa-chart-bar fa-4x text-muted mb-3"></i>
                 <h5 class="text-muted">暂无统计数据</h5>
-                <p class="text-muted">系统中还没有考勤记录可供统计</p>
+                <p class="text-muted">您还没有授课记录可供统计</p>
             </div>
         {% endif %}
     </div>
@@ -195,146 +155,179 @@
                 <i class="fas fa-pie-chart me-2"></i>整体出勤分布
             </div>
             <div class="card-body">
-                <canvas id="attendanceChart" width="400" height="200"></canvas>
+                <canvas id="attendanceChart" width="400" height="200" 
+                        data-present="{{ total_present|default:0 }}"
+                        data-absent="{{ total_absent|default:0 }}"
+                        data-leave="{{ total_leave|default:0 }}"></canvas>
             </div>
         </div>
     </div>
     <div class="col-md-6">
         <div class="card">
             <div class="card-header">
-                <i class="fas fa-bar-chart me-2"></i>课程出勤率排行
+                <i class="fas fa-bar-chart me-2"></i>出勤率趋势
             </div>
             <div class="card-body">
-                <canvas id="courseRankChart" width="400" height="200"></canvas>
+                <canvas id="trendChart" width="400" height="200"></canvas>
             </div>
         </div>
     </div>
 </div>
+
+<!-- 数据脚本 -->
+<script type="application/json" id="chart-data">
+{
+    "courseLabels": [
+        {% for stat in course_stats %}"{{ stat.course.course_name|escapejs }}"{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ],
+    "coursePresentRates": [
+        {% for stat in course_stats %}{{ stat.present_rate|default:0 }}{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ],
+    "eventData": {
+        {% for stat in course_stats %}
+            {% for event_stat in stat.event_stats %}
+        "{{ event_stat.event.event_id }}": {
+            "present": {{ event_stat.present_count|default:0 }},
+            "absent": {{ event_stat.absent_count|default:0 }},
+            "leave": {{ event_stat.leave_count|default:0 }}
+        }{% if not forloop.last or not forloop.parentloop.last %},{% endif %}
+            {% endfor %}
+        {% endfor %}
+    }
+}
+</script>
 {% endif %}
 {% endblock %}
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 {% if course_stats %}
-<script id="chart-data" type="application/json">{{ chart_data|safe }}</script>
-{% endif %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+$(document).ready(function() {
     // 设置进度条宽度
-    document.querySelectorAll('.progress-bar').forEach(function(bar) {
-        const width = bar.getAttribute('data-width');
-        if (width) {
-            bar.style.width = width + '%';
+    $('.progress-bar').each(function() {
+        const width = $(this).data('width');
+        $(this).css('width', width + '%');
+    });
+    
+    // 获取数据
+    const chartDataElement = document.getElementById('chart-data');
+    let chartData = {};
+    if (chartDataElement) {
+        chartData = JSON.parse(chartDataElement.textContent);
+    }
+    
+    // 从canvas元素获取整体数据
+    const attendanceChart = document.getElementById('attendanceChart');
+    const attendanceData = [
+        parseInt(attendanceChart.dataset.present || 0),
+        parseInt(attendanceChart.dataset.absent || 0),
+        parseInt(attendanceChart.dataset.leave || 0)
+    ];
+    
+    // 整体出勤分布饼图
+    new Chart(attendanceChart, {
+        type: 'doughnut',
+        data: {
+            labels: ['出勤', '缺勤', '请假'],
+            datasets: [{
+                data: attendanceData,
+                backgroundColor: ['#28a745', '#dc3545', '#ffc107'],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
         }
     });
-
-    // 检查是否有图表数据
-    const chartDataElement = document.getElementById('chart-data');
-    if (chartDataElement) {
-        const chartData = JSON.parse(chartDataElement.textContent);
-
-        // 整体出勤分布饼图
-        const attendanceCanvas = document.getElementById('attendanceChart');
-        if (attendanceCanvas) {
-            const attendanceCtx = attendanceCanvas.getContext('2d');
-            new Chart(attendanceCtx, {
-                type: 'pie',
-                data: {
-                    labels: ['出勤', '缺勤', '请假'],
-                    datasets: [{
-                        data: [chartData.present_total, chartData.absent_total, chartData.leave_total],
-                        backgroundColor: ['#28a745', '#dc3545', '#ffc107']
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'bottom'
+    
+    // 出勤率趋势柱状图
+    if (chartData.courseLabels && chartData.coursePresentRates) {
+        new Chart(document.getElementById('trendChart'), {
+            type: 'bar',
+            data: {
+                labels: chartData.courseLabels,
+                datasets: [{
+                    label: '出勤率(%)',
+                    data: chartData.coursePresentRates,
+                    backgroundColor: '#417690',
+                    borderColor: '#417690',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
                         }
                     }
-                }
-            });
-        }
-
-        // 课程出勤率排行柱状图
-        const courseRankCanvas = document.getElementById('courseRankChart');
-        if (courseRankCanvas) {
-            const courseRankCtx = courseRankCanvas.getContext('2d');
-            new Chart(courseRankCtx, {
-                type: 'bar',
-                data: {
-                    labels: chartData.course_names,
-                    datasets: [{
-                        label: '出勤率(%)',
-                        data: chartData.present_rates,
-                        backgroundColor: '#417690'
-                    }]
                 },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 100
-                        }
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+    
+    // 为每个事件创建小图表
+    if (chartData.eventData) {
+        Object.keys(chartData.eventData).forEach(function(eventId) {
+            const eventDataItem = chartData.eventData[eventId];
+            const chartElement = document.getElementById('event-chart-' + eventId);
+            if (chartElement) {
+                new Chart(chartElement, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['出勤', '缺勤', '请假'],
+                        datasets: [{
+                            data: [eventDataItem.present, eventDataItem.absent, eventDataItem.leave],
+                            backgroundColor: ['#28a745', '#dc3545', '#ffc107'],
+                            borderWidth: 1,
+                            borderColor: '#fff'
+                        }]
                     },
-                    plugins: {
-                        legend: {
-                            display: false
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
                         }
                     }
-                }
-            });
-        }
-
-        // 单次考勤饼图
-        if (chartData.courses_with_events) {
-            chartData.courses_with_events.forEach(course => {
-                if (course.event_stats) {
-                    course.event_stats.forEach(eventStat => {
-                        const eventCanvas = document.getElementById(`event-chart-${eventStat.event.event_id}`);
-                        if (eventCanvas) {
-                            const eventCtx = eventCanvas.getContext('2d');
-                            new Chart(eventCtx, {
-                                type: 'doughnut',
-                                data: {
-                                    labels: ['出勤', '缺勤', '请假'],
-                                    datasets: [{
-                                        data: [eventStat.present_count, eventStat.absent_count, eventStat.leave_count],
-                                        backgroundColor: ['#28a745', '#dc3545', '#ffc107'],
-                                        borderWidth: 2,
-                                        borderColor: '#fff'
-                                    }]
-                                },
-                                options: {
-                                    responsive: true,
-                                    maintainAspectRatio: false,
-                                    plugins: {
-                                        legend: {
-                                            display: false
-                                        },
-                                        tooltip: {
-                                            callbacks: {
-                                                label: function(context) {
-                                                    const label = context.label || '';
-                                                    const value = context.parsed || 0;
-                                                    const total = eventStat.total_count;
-                                                    const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
-                                                    return `${label}: ${value} (${percentage}%)`;
-                                                }
-                                            }
-                                        }
-                                    },
-                                    cutout: '50%'
-                                }
-                            });
-                        }
-                    });
-                }
-            });
-        }
+                });
+            }
+        });
     }
 });
 </script>
+{% else %}
+<script>
+$(document).ready(function() {
+    // 设置进度条宽度
+    $('.progress-bar').each(function() {
+        const width = $(this).data('width');
+        $(this).css('width', width + '%');
+    });
+});
+</script>
+{% endif %}
 {% endblock %} 

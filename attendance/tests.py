@@ -18,7 +18,7 @@ class ScanQrPageTest(TestCase):
             scan_end_time=timezone.now() + timezone.timedelta(minutes=10),
             status=1
         )
-        self.enrollment = Enrollment.objects.create(student=self.student, course=self.course, semester='202401')
+        self.enrollment = Enrollment.objects.create(student=self.student, course=self.course)
         self.client = Client()
 
     def test_attendance_success(self):

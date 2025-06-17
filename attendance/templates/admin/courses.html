@@ -39,10 +39,10 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                         <input type="text" class="form-control" id="searchInput" placeholder="搜索课程...">
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-3">
                         <button class="btn btn-primary w-100" id="searchBtn">
                             <i class="fas fa-search me-2"></i>搜索
                         </button>
@@ -57,7 +57,6 @@
                                 <th>课程代码</th>
                                 <th>课程名称</th>
                                 <th>开课院系</th>
-                                <th>学期</th>
                                 <th>教师</th>
                                 <th>学生人数</th>
                                 <th>操作</th>
@@ -69,7 +68,6 @@
                                 <td>{{ course.course_id }}</td>
                                 <td>{{ course.course_name }}</td>
                                 <td>{{ course.dept.dept_name }}</td>
-                                <td>{{ course.semester }}</td>
                                 <td>{{ course.teacher.teacher_name }}</td>
                                 <td>{{ course.student_count }}</td>
                                 <td>
@@ -88,7 +86,7 @@
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="7" class="text-center py-4">
+                                <td colspan="6" class="text-center py-4">
                                     <i class="fas fa-info-circle me-2"></i>暂无课程记录
                                 </td>
                             </tr>
@@ -166,15 +164,7 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">学期</label>
-                        <select class="form-select" name="semester" required>
-                            <option value="">请选择学期</option>
-                            {% for semester in semesters %}
-                            <option value="{{ semester }}">{{ semester }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
+
                 </form>
             </div>
             <div class="modal-footer">
@@ -244,7 +234,6 @@ function submitImportCourses() {
 // 搜索功能
 document.getElementById('searchBtn').addEventListener('click', function() {
     const department = document.getElementById('department').value;
-    const semester = document.getElementById('semester').value;
     const searchText = document.getElementById('searchInput').value;
     
     // 实现搜索功能

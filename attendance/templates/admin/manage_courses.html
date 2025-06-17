@@ -5,19 +5,9 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h4><i class="fas fa-book me-2"></i>管理课程</h4>
-    <div class="btn-group">
-        <button class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown">
-            <i class="fas fa-plus me-1"></i>新增
-        </button>
-        <ul class="dropdown-menu">
-            <li><button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#addCourseModal">
-                <i class="fas fa-book me-1"></i>新增课程
-            </button></li>
-            <li><button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#addTeachingModal">
-                <i class="fas fa-chalkboard-teacher me-1"></i>安排教学
-            </button></li>
-        </ul>
-    </div>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCourseModal">
+        <i class="fas fa-plus me-1"></i>新增课程
+    </button>
 </div>
 
 <!-- 搜索栏 -->
@@ -202,50 +192,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-primary">
-                    <i class="fas fa-save me-1"></i>保存
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- 安排教学模态框 -->
-<div class="modal fade" id="addTeachingModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="fas fa-plus me-2"></i>安排教学</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="addTeachingForm">
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <label class="form-label">选择课程 <span class="text-danger">*</span></label>
-                        <select class="form-select" name="course_id" required>
-                            <option value="">请选择课程</option>
-                            {% for stat in course_stats %}
-                                <option value="{{ stat.course.id }}">{{ stat.course.course_name }} ({{ stat.course.course_id }})</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">选择教师 <span class="text-danger">*</span></label>
-                        <select class="form-select" name="teacher_id" required>
-                            <option value="">请选择教师</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">学期 <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" name="semester" 
-                               placeholder="例如：2024-2025-1" required>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-primary">
+                <button type="button" class="btn btn-primary" onclick="addCourse()">
                     <i class="fas fa-save me-1"></i>保存
                 </button>
             </div>
@@ -265,9 +212,7 @@ function loadDepartments() {
     fetch('/api/get-departments/')
         .then(response => response.json())
         .then(data => {
-            const deptSelects = [
-                document.getElementById('edit_course_dept_select')
-            ];
+            const deptSelects = document.querySelectorAll('select[name="dept_id"]');
             deptSelects.forEach(select => {
                 if (select) {
                     select.innerHTML = '<option value="">请选择院系</option>';
@@ -280,6 +225,41 @@ function loadDepartments() {
 }
 
 // 课程操作函数
+function addCourse() {
+    const formData = new FormData(document.getElementById('addCourseForm'));
+    const data = {
+        'course_id': formData.get('course_id'),
+        'course_name': formData.get('course_name'),
+        'dept_id': formData.get('dept_id')
+    };
+    
+    if (!data.course_id || !data.course_name || !data.dept_id) {
+        alert('请填写完整信息！');
+        return;
+    }
+    
+    fetch('/api/add-course/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('课程添加成功！');
+            location.reload();
+        } else {
+            alert('添加失败：' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('操作失败：' + error);
+    });
+}
+
 function editCourse(button) {
     const courseId = button.getAttribute('data-course-id');
     const courseName = button.getAttribute('data-course-name');

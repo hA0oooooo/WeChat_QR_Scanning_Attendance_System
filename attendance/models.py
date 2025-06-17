@@ -87,7 +87,6 @@ class Course(models.Model):
     course_id = models.CharField(max_length=20, primary_key=True, verbose_name='课程ID')
     course_name = models.CharField(max_length=100, verbose_name='课程名称')
     dept = models.ForeignKey(Department, on_delete=models.RESTRICT, db_column='dept_id', null=False, verbose_name='开课院系')
-    credit = models.PositiveSmallIntegerField(default=0, verbose_name='学分')
 
     class Meta:
         db_table = 'Course'
@@ -117,13 +116,12 @@ class Enrollment(models.Model):
     enroll_id = models.AutoField(primary_key=True, verbose_name='选课记录ID')
     student = models.ForeignKey(Student, on_delete=models.CASCADE, db_column='stu_id', null=False, verbose_name='学生')
     course = models.ForeignKey(Course, on_delete=models.CASCADE, db_column='course_id', null=False, verbose_name='课程')
-    semester = models.CharField(max_length=6, null=False, verbose_name='选课学期')
 
     class Meta:
         db_table = 'Enrollment'
         verbose_name = '选课记录'
         verbose_name_plural = verbose_name
-        unique_together = ('student', 'course', 'semester')
+        unique_together = ('student', 'course')
 
     def __str__(self):
         return f"{self.student.stu_name}-{self.course.course_name}"
@@ -206,6 +204,7 @@ class ClassSchedule(models.Model):
     schedule_id = models.AutoField(primary_key=True, verbose_name='时间安排ID')
     assignment = models.ForeignKey(TeachingAssignment, on_delete=models.CASCADE, db_column='assignment_id', 
                                  verbose_name='教学安排')
+    class_date = models.DateField(verbose_name='上课日期')
     weekday = models.PositiveSmallIntegerField(choices=[(i, f'星期{i}') for i in range(1, 8)], verbose_name='星期')
     start_period = models.PositiveSmallIntegerField(verbose_name='开始节次')
     end_period = models.PositiveSmallIntegerField(verbose_name='结束节次')
@@ -217,7 +216,7 @@ class ClassSchedule(models.Model):
         db_table = 'ClassSchedule'
 
     def __str__(self):
-        return f"{self.assignment.course.course_name}-{self.get_weekday_display()}"
+        return f"{self.assignment.course.course_name}-{self.class_date}-{self.get_weekday_display()}"
 
 class SystemSettings(models.Model):
     """系统设置模型"""

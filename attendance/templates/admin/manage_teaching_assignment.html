@@ -23,6 +23,14 @@
         box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         transform: translateY(-2px);
     }
+    .schedule-time {
+        color: #000;
+        font-weight: normal;
+    }
+    .weekday-name {
+        font-weight: 600;
+        color: #007bff;
+    }
 </style>
 {% endblock %}
 
@@ -46,7 +54,7 @@
                 <p class="mb-1"><strong>开课院系：</strong>{{ course.dept.dept_name }}</p>
             </div>
             <div class="col-md-6 text-end">
-                <button class="btn btn-light" onclick="addTeachingAssignment()">
+                <button class="btn btn-light" onclick="addClassSchedule()">
                     <i class="fas fa-plus me-1"></i>添加教学安排
                 </button>
             </div>
@@ -57,56 +65,61 @@
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <span><i class="fas fa-chalkboard-teacher me-2"></i>教学安排列表</span>
-            <span class="badge bg-primary">共 {{ teaching_assignments.count }} 项安排</span>
+            <span class="badge bg-primary">教学安排</span>
         </div>
         <div class="card-body">
-            {% if teaching_assignments %}
+            {% if class_schedules %}
                 <div class="row">
-                    {% for assignment in teaching_assignments %}
+                    {% for schedule in class_schedules %}
                         <div class="col-md-6 col-lg-4">
                             <div class="teaching-card">
                                 <div class="d-flex justify-content-between align-items-start mb-3">
                                     <div>
-                                        <h6 class="mb-1">{{ assignment.teacher.teacher_name }}</h6>
-                                        <small class="text-muted">工号：{{ assignment.teacher.teacher_id }}</small>
+                                        <h6 class="mb-1">{{ schedule.assignment.teacher.teacher_name }}</h6>
+                                        <small class="text-muted">工号：{{ schedule.assignment.teacher.teacher_id }}</small>
                                     </div>
                                     <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-primary edit-btn" title="编辑" 
-                                                data-assignment-id="{{ assignment.assignment_id }}" 
-                                                data-teacher-id="{{ assignment.teacher.teacher_id }}">
+                                        <button class="btn btn-outline-primary" title="编辑" 
+                                                data-schedule-id="{{ schedule.schedule_id }}"
+                                                data-teacher-id="{{ schedule.assignment.teacher.teacher_id }}"
+                                                data-class-date="{{ schedule.class_date|date:'Y-m-d' }}"
+                                                data-weekday="{{ schedule.weekday }}"
+                                                data-start-period="{{ schedule.start_period }}"
+                                                data-end-period="{{ schedule.end_period }}"
+                                                data-location="{{ schedule.location }}"
+                                                onclick="editClassScheduleByData(this)">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <button class="btn btn-outline-danger delete-btn" title="删除"
-                                                data-assignment-id="{{ assignment.assignment_id }}" 
-                                                data-teacher-name="{{ assignment.teacher.teacher_name }}">
+                                        <button class="btn btn-outline-danger" title="删除"
+                                                data-schedule-id="{{ schedule.schedule_id }}"
+                                                data-teacher-name="{{ schedule.assignment.teacher.teacher_name }}"
+                                                onclick="deleteClassScheduleByData(this)">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </div>
                                 </div>
                                 <div class="mb-2">
-                                    <span class="badge bg-secondary">{{ assignment.teacher.dept.dept_name }}</span>
+                                    <span class="badge bg-secondary">{{ schedule.assignment.teacher.dept.dept_name }}</span>
                                 </div>
                                 
                                 <!-- 课程时间安排 -->
-                                {% if assignment.classschedule_set.all %}
-                                    <div class="mt-3">
-                                        <h6 class="text-muted">上课时间：</h6>
-                                        {% for schedule in assignment.classschedule_set.all %}
-                                            <div class="mb-2">
-                                                <span class="badge bg-info">{{ schedule.get_weekday_display }}</span>
-                                                <span class="text-muted">第{{ schedule.start_period }}-{{ schedule.end_period }}节</span>
-                                                <small class="d-block text-muted">{{ schedule.location }}</small>
-                                            </div>
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
-                                
                                 <div class="mt-3">
-                                    <button class="btn btn-sm btn-outline-success schedule-btn" 
-                                            data-assignment-id="{{ assignment.assignment_id }}" 
-                                            data-teacher-name="{{ assignment.teacher.teacher_name }}">
-                                        <i class="fas fa-calendar me-1"></i>管理时间安排
-                                    </button>
+                                    <h6 class="text-muted">上课时间：</h6>
+                                    <div class="mb-2">
+                                        <span class="schedule-time weekday-name">
+                                            {{ schedule.class_date|date:"m月d日" }}
+                                            {% if schedule.weekday == 1 %}星期一
+                                            {% elif schedule.weekday == 2 %}星期二
+                                            {% elif schedule.weekday == 3 %}星期三
+                                            {% elif schedule.weekday == 4 %}星期四
+                                            {% elif schedule.weekday == 5 %}星期五
+                                            {% elif schedule.weekday == 6 %}星期六
+                                            {% elif schedule.weekday == 7 %}星期日
+                                            {% endif %}
+                                            第{{ schedule.start_period }}{% if schedule.start_period != schedule.end_period %}-{{ schedule.end_period }}{% endif %}节
+                                        </span>
+                                        <small class="d-block text-muted mt-1">{{ schedule.location }}</small>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -114,12 +127,9 @@
                 </div>
             {% else %}
                 <div class="text-center py-5">
-                    <i class="fas fa-chalkboard-teacher fa-4x text-muted mb-3"></i>
+                    <i class="fas fa-calendar-alt fa-4x text-muted mb-3"></i>
                     <h5 class="text-muted">暂无教学安排</h5>
-                    <p class="text-muted">该课程还没有安排教师</p>
-                    <button class="btn btn-primary" onclick="addTeachingAssignment()">
-                        <i class="fas fa-plus me-1"></i>添加教学安排
-                    </button>
+                    <p class="text-muted">该课程还没有安排教学时间</p>
                 </div>
             {% endif %}
         </div>
@@ -127,7 +137,7 @@
 </div>
 
 <!-- 添加教学安排模态框 -->
-<div class="modal fade" id="addTeachingAssignmentModal" tabindex="-1">
+<div class="modal fade" id="addClassScheduleModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
@@ -135,20 +145,78 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <form id="addTeachingAssignmentForm">
+                <form id="addClassScheduleForm">
                     {% csrf_token %}
                     <input type="hidden" name="course_id" value="{{ course.course_id }}">
                     <div class="mb-3">
                         <label class="form-label">选择教师 <span class="text-danger">*</span></label>
                         <select class="form-select" name="teacher_id" id="teacher_select" required>
                             <option value="">请选择教师</option>
+                            {% for teacher in teachers %}
+                                <option value="{{ teacher.teacher_id }}">{{ teacher.teacher_name }} ({{ teacher.teacher_id }}) - {{ teacher.dept.dept_name }}</option>
+                            {% endfor %}
                         </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">上课日期 <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" name="class_date" id="class_date_input" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">星期 <span class="text-danger">*</span></label>
+                        <select class="form-select" name="weekday" id="weekday_select" required>
+                            <option value="">请选择星期</option>
+                            <option value="1">星期一</option>
+                            <option value="2">星期二</option>
+                            <option value="3">星期三</option>
+                            <option value="4">星期四</option>
+                            <option value="5">星期五</option>
+                            <option value="6">星期六</option>
+                            <option value="7">星期日</option>
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">开始节次 <span class="text-danger">*</span></label>
+                                <select class="form-select" name="start_period" id="start_period_select" required>
+                                    <option value="">请选择</option>
+                                    <option value="1">第1节</option>
+                                    <option value="2">第2节</option>
+                                    <option value="3">第3节</option>
+                                    <option value="4">第4节</option>
+                                    <option value="5">第5节</option>
+                                    <option value="6">第6节</option>
+                                    <option value="7">第7节</option>
+                                    <option value="8">第8节</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">结束节次 <span class="text-danger">*</span></label>
+                                <select class="form-select" name="end_period" id="end_period_select" required>
+                                    <option value="">请选择</option>
+                                    <option value="1">第1节</option>
+                                    <option value="2">第2节</option>
+                                    <option value="3">第3节</option>
+                                    <option value="4">第4节</option>
+                                    <option value="5">第5节</option>
+                                    <option value="6">第6节</option>
+                                    <option value="7">第7节</option>
+                                    <option value="8">第8节</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">上课地点 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="location" id="location_input" placeholder="请输入上课地点" required>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-primary" onclick="saveTeachingAssignment()">
+                <button type="button" class="btn btn-primary" onclick="saveClassSchedule()">
                     <i class="fas fa-save me-1"></i>保存
                 </button>
             </div>
@@ -157,7 +225,7 @@
 </div>
 
 <!-- 编辑教学安排模态框 -->
-<div class="modal fade" id="editTeachingAssignmentModal" tabindex="-1">
+<div class="modal fade" id="editClassScheduleModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
@@ -165,20 +233,78 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <form id="editTeachingAssignmentForm">
+                <form id="editClassScheduleForm">
                     {% csrf_token %}
-                    <input type="hidden" name="assignment_id" id="edit_assignment_id">
+                    <input type="hidden" name="schedule_id" id="edit_schedule_id">
                     <div class="mb-3">
                         <label class="form-label">选择教师 <span class="text-danger">*</span></label>
                         <select class="form-select" name="teacher_id" id="edit_teacher_select" required>
                             <option value="">请选择教师</option>
+                            {% for teacher in teachers %}
+                                <option value="{{ teacher.teacher_id }}">{{ teacher.teacher_name }} ({{ teacher.teacher_id }}) - {{ teacher.dept.dept_name }}</option>
+                            {% endfor %}
                         </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">上课日期 <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" name="class_date" id="edit_class_date_input" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">星期 <span class="text-danger">*</span></label>
+                        <select class="form-select" name="weekday" id="edit_weekday_select" required>
+                            <option value="">请选择星期</option>
+                            <option value="1">星期一</option>
+                            <option value="2">星期二</option>
+                            <option value="3">星期三</option>
+                            <option value="4">星期四</option>
+                            <option value="5">星期五</option>
+                            <option value="6">星期六</option>
+                            <option value="7">星期日</option>
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">开始节次 <span class="text-danger">*</span></label>
+                                <select class="form-select" name="start_period" id="edit_start_period_select" required>
+                                    <option value="">请选择</option>
+                                    <option value="1">第1节</option>
+                                    <option value="2">第2节</option>
+                                    <option value="3">第3节</option>
+                                    <option value="4">第4节</option>
+                                    <option value="5">第5节</option>
+                                    <option value="6">第6节</option>
+                                    <option value="7">第7节</option>
+                                    <option value="8">第8节</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">结束节次 <span class="text-danger">*</span></label>
+                                <select class="form-select" name="end_period" id="edit_end_period_select" required>
+                                    <option value="">请选择</option>
+                                    <option value="1">第1节</option>
+                                    <option value="2">第2节</option>
+                                    <option value="3">第3节</option>
+                                    <option value="4">第4节</option>
+                                    <option value="5">第5节</option>
+                                    <option value="6">第6节</option>
+                                    <option value="7">第7节</option>
+                                    <option value="8">第8节</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">上课地点 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="location" id="edit_location_input" placeholder="请输入上课地点" required>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-primary" onclick="updateTeachingAssignment()">
+                <button type="button" class="btn btn-primary" onclick="updateClassSchedule()">
                     <i class="fas fa-save me-1"></i>保存
                 </button>
             </div>
@@ -189,63 +315,36 @@
 
 {% block extra_js %}
 <script>
-// 页面加载时获取教师列表
-document.addEventListener('DOMContentLoaded', function() {
-    loadTeachers();
-    
-    // 绑定事件监听器
-    document.addEventListener('click', function(e) {
-        if (e.target.closest('.edit-btn')) {
-            const btn = e.target.closest('.edit-btn');
-            editTeachingAssignment(btn.dataset.assignmentId, btn.dataset.teacherId);
-        }
-        if (e.target.closest('.delete-btn')) {
-            const btn = e.target.closest('.delete-btn');
-            deleteTeachingAssignment(btn.dataset.assignmentId, btn.dataset.teacherName);
-        }
-        if (e.target.closest('.schedule-btn')) {
-            const btn = e.target.closest('.schedule-btn');
-            manageSchedule(btn.dataset.assignmentId, btn.dataset.teacherName);
-        }
-    });
-});
-
-function loadTeachers() {
-    fetch('/api/get-teachers/')
-        .then(response => response.json())
-        .then(data => {
-            const teacherSelects = [
-                document.getElementById('teacher_select'),
-                document.getElementById('edit_teacher_select')
-            ];
-            teacherSelects.forEach(select => {
-                if (select) {
-                    select.innerHTML = '<option value="">请选择教师</option>';
-                    data.teachers.forEach(teacher => {
-                        select.innerHTML += `<option value="${teacher.teacher_id}">${teacher.teacher_name} (${teacher.teacher_id}) - ${teacher.dept_name}</option>`;
-                    });
-                }
-            });
-        });
+function addClassSchedule() {
+    // 重置表单
+    document.getElementById('addClassScheduleForm').reset();
+    new bootstrap.Modal(document.getElementById('addClassScheduleModal')).show();
 }
 
-function addTeachingAssignment() {
-    new bootstrap.Modal(document.getElementById('addTeachingAssignmentModal')).show();
-}
-
-function saveTeachingAssignment() {
-    const formData = new FormData(document.getElementById('addTeachingAssignmentForm'));
+function saveClassSchedule() {
+    const formData = new FormData(document.getElementById('addClassScheduleForm'));
     const data = {
         'course_id': formData.get('course_id'),
-        'teacher_id': formData.get('teacher_id')
+        'teacher_id': formData.get('teacher_id'),
+        'class_date': formData.get('class_date'),
+        'weekday': formData.get('weekday'),
+        'start_period': formData.get('start_period'),
+        'end_period': formData.get('end_period'),
+        'location': formData.get('location')
     };
     
-    if (!data.teacher_id) {
-        alert('请选择教师！');
+    // 验证表单
+    if (!data.teacher_id || !data.class_date || !data.weekday || !data.start_period || !data.end_period || !data.location) {
+        alert('请填写所有必填字段！');
         return;
     }
     
-    fetch('/api/add-teaching-assignment/', {
+    if (parseInt(data.start_period) > parseInt(data.end_period)) {
+        alert('开始节次不能大于结束节次！');
+        return;
+    }
+    
+    fetch('/api/add-class-schedule/', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -267,32 +366,57 @@ function saveTeachingAssignment() {
     });
 }
 
-function editTeachingAssignment(assignmentId, teacherId) {
-    document.getElementById('edit_assignment_id').value = assignmentId;
+function editClassSchedule(scheduleId, teacherId, classDate, weekday, startPeriod, endPeriod, location) {
+    // 设置表单值
+    document.getElementById('edit_schedule_id').value = scheduleId;
+    document.getElementById('edit_teacher_select').value = teacherId;
+    document.getElementById('edit_class_date_input').value = classDate;
+    document.getElementById('edit_weekday_select').value = weekday;
+    document.getElementById('edit_start_period_select').value = startPeriod;
+    document.getElementById('edit_end_period_select').value = endPeriod;
+    document.getElementById('edit_location_input').value = location;
     
-    // 设置教师选择
-    setTimeout(() => {
-        if (teacherId) {
-            document.getElementById('edit_teacher_select').value = teacherId;
-        }
-    }, 100);
-    
-    new bootstrap.Modal(document.getElementById('editTeachingAssignmentModal')).show();
+    new bootstrap.Modal(document.getElementById('editClassScheduleModal')).show();
 }
 
-function updateTeachingAssignment() {
-    const formData = new FormData(document.getElementById('editTeachingAssignmentForm'));
+function editClassScheduleByData(button) {
+    // 从data属性获取数据
+    const scheduleId = button.getAttribute('data-schedule-id');
+    const teacherId = button.getAttribute('data-teacher-id');
+    const classDate = button.getAttribute('data-class-date');
+    const weekday = button.getAttribute('data-weekday');
+    const startPeriod = button.getAttribute('data-start-period');
+    const endPeriod = button.getAttribute('data-end-period');
+    const location = button.getAttribute('data-location');
+    
+    // 调用原有函数
+    editClassSchedule(scheduleId, teacherId, classDate, weekday, startPeriod, endPeriod, location);
+}
+
+function updateClassSchedule() {
+    const formData = new FormData(document.getElementById('editClassScheduleForm'));
     const data = {
-        'assignment_id': formData.get('assignment_id'),
-        'teacher_id': formData.get('teacher_id')
+        'schedule_id': formData.get('schedule_id'),
+        'teacher_id': formData.get('teacher_id'),
+        'class_date': formData.get('class_date'),
+        'weekday': formData.get('weekday'),
+        'start_period': formData.get('start_period'),
+        'end_period': formData.get('end_period'),
+        'location': formData.get('location')
     };
     
-    if (!data.teacher_id) {
-        alert('请选择教师！');
+    // 验证表单
+    if (!data.teacher_id || !data.class_date || !data.weekday || !data.start_period || !data.end_period || !data.location) {
+        alert('请填写所有必填字段！');
         return;
     }
     
-    fetch('/api/update-teaching-assignment/', {
+    if (parseInt(data.start_period) > parseInt(data.end_period)) {
+        alert('开始节次不能大于结束节次！');
+        return;
+    }
+    
+    fetch('/api/update-class-schedule/', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -314,15 +438,15 @@ function updateTeachingAssignment() {
     });
 }
 
-function deleteTeachingAssignment(assignmentId, teacherName) {
-    if (confirm(`确定要删除教师 "${teacherName}" 的教学安排吗？\n此操作不可恢复！`)) {
-        fetch('/api/delete-teaching-assignment/', {
+function deleteClassSchedule(scheduleId, teacherName) {
+    if (confirm(`确定要删除教师 "${teacherName}" 的这个教学安排吗？\n此操作不可恢复！`)) {
+        fetch('/api/delete-class-schedule/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
             },
-            body: JSON.stringify({'assignment_id': assignmentId})
+            body: JSON.stringify({'schedule_id': scheduleId})
         })
         .then(response => response.json())
         .then(data => {
@@ -339,9 +463,13 @@ function deleteTeachingAssignment(assignmentId, teacherName) {
     }
 }
 
-function manageSchedule(assignmentId, teacherName) {
-    // 跳转到时间安排管理页面
-    window.location.href = `/manage/schedule/${assignmentId}/`;
+function deleteClassScheduleByData(button) {
+    // 从data属性获取数据
+    const scheduleId = button.getAttribute('data-schedule-id');
+    const teacherName = button.getAttribute('data-teacher-name');
+    
+    // 调用原有函数
+    deleteClassSchedule(scheduleId, teacherName);
 }
 </script>
 {% endblock %} 

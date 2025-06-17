@@ -25,7 +25,10 @@ from .teacher_views import (
     event_detail,
     student_course_attendance,
     course_all_students_attendance,
-    event_attendance_records_api
+    event_attendance_records_api,
+    teacher_statistics,
+    teacher_update_profile,
+    teacher_change_password
 )
 
 from .admin_views import (

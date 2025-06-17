@@ -128,24 +128,26 @@
                                     <i class="fas fa-book me-1"></i>我的课程
                                 </a>
                             </li>
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" id="teacherDropdown" role="button" data-bs-toggle="dropdown">
-                                    <i class="fas fa-clipboard-check me-1"></i>考勤管理
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'teacher_courses' %}">
+                                    <i class="fas fa-qrcode me-1"></i>考勤事件
                                 </a>
-                                <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="{% url 'teacher_courses' %}">
-                                        <i class="fas fa-qrcode me-1"></i>考勤事件
-                                    </a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="{% url 'leave_request_list' %}">
-                                        <i class="fas fa-calendar-alt me-1"></i>请假审批
-                                    </a></li>
-                                </ul>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'leave_request_list' %}">
+                                    <i class="fas fa-calendar-alt me-1"></i>请假审批
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'teacher_statistics' %}">
+                                    <i class="fas fa-chart-bar me-1"></i>统计报表
+                                </a>
                             </li>
                         {% endif %}
                     {% endif %}
                 </ul>
                 <ul class="navbar-nav">
+                    {% if not user.is_superuser %}
                     <li class="nav-item">
                         {% if user.student %}
                             <a class="nav-link" href="{% url 'student_profile' %}">
@@ -155,11 +157,13 @@
                             <a class="nav-link" href="{% url 'teacher_profile' %}">
                                 <i class="fas fa-user me-1"></i>个人信息
                             </a>
-                        {% else %}
-                            <a class="nav-link" href="{% url 'logout' %}">
-                                <i class="fas fa-sign-out-alt me-1"></i>退出登录
-                            </a>
                         {% endif %}
+                    </li>
+                    {% endif %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'logout' %}">
+                            <i class="fas fa-sign-out-alt me-1"></i>退出登录
+                        </a>
                     </li>
                 </ul>
             </div>

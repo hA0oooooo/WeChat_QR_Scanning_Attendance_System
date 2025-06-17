@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.utils import timezone
 from django.db.models import Count, Q
-from ..models import Student, Teacher, Course, Department, Major, Attendance, AttendanceEvent, Enrollment, TeachingAssignment
+from ..models import Student, Teacher, Course, Department, Major, Attendance, AttendanceEvent, Enrollment, TeachingAssignment, ClassSchedule
 from django.contrib.auth.models import User
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -165,6 +165,29 @@ def admin_statistics(request):
             absent_rate = round((absent_count / total_count) * 100, 1)
             leave_rate = round((leave_count / total_count) * 100, 1)
             
+            # 获取该课程的考勤事件，按日期分组统计
+            events = AttendanceEvent.objects.filter(course=course).order_by('event_date')
+            event_stats = []
+            
+            for event in events:
+                event_attendances = attendances.filter(event=event)
+                event_total = event_attendances.count()
+                if event_total > 0:
+                    event_present = event_attendances.filter(status=1).count()
+                    event_absent = event_attendances.filter(status=2).count()
+                    event_leave = event_attendances.filter(status=3).count()
+                    event_present_rate = round((event_present / event_total) * 100, 1)
+                    
+                    event_stats.append({
+                        'event': event,
+                        'date': event.event_date,
+                        'total_count': event_total,
+                        'present_count': event_present,
+                        'absent_count': event_absent,
+                        'leave_count': event_leave,
+                        'present_rate': event_present_rate,
+                    })
+            
             course_stats.append({
                 'course': course,
                 'total_count': total_count,
@@ -174,6 +197,7 @@ def admin_statistics(request):
                 'present_rate': present_rate,
                 'absent_rate': absent_rate,
                 'leave_rate': leave_rate,
+                'event_stats': event_stats,  # 单次考勤统计
             })
     
     # 按出勤率排序
@@ -186,12 +210,37 @@ def admin_statistics(request):
     total_events = AttendanceEvent.objects.count()
     
     # 为图表准备JSON数据
+    courses_with_events_serializable = []
+    for stat in course_stats:
+        event_stats_serializable = []
+        for event_stat in stat['event_stats']:
+            event_stats_serializable.append({
+                'event': {
+                    'event_id': event_stat['event'].event_id,
+                },
+                'date': event_stat['date'].strftime('%Y-%m-%d'),
+                'total_count': event_stat['total_count'],
+                'present_count': event_stat['present_count'],
+                'absent_count': event_stat['absent_count'],
+                'leave_count': event_stat['leave_count'],
+                'present_rate': event_stat['present_rate'],
+            })
+        
+        courses_with_events_serializable.append({
+            'course': {
+                'course_id': stat['course'].course_id,
+                'course_name': stat['course'].course_name,
+            },
+            'event_stats': event_stats_serializable,
+        })
+    
     chart_data_raw = {
         'present_total': sum(stat['present_count'] for stat in course_stats),
         'absent_total': sum(stat['absent_count'] for stat in course_stats),
         'leave_total': sum(stat['leave_count'] for stat in course_stats),
         'course_names': [stat['course'].course_name[:8] for stat in course_stats[:5]],
         'present_rates': [stat['present_rate'] for stat in course_stats[:5]],
+        'courses_with_events': courses_with_events_serializable,  # 序列化后的数据
     }
     chart_data = json.dumps(chart_data_raw)
     
@@ -445,18 +494,16 @@ def add_student(request):
             stu_name = data.get('stu_name')
             stu_sex = data.get('stu_sex')
             major_id = data.get('major_id')
-            openid = data.get('openid')
             
-            if not stu_id or not stu_name or not stu_sex or not openid:
+            if not stu_id or not stu_name or not stu_sex:
                 return JsonResponse({'success': False, 'message': '请填写必要信息'})
             
             # 检查学号是否已存在
             if Student.objects.filter(stu_id=stu_id).exists():
                 return JsonResponse({'success': False, 'message': '该学号已存在'})
             
-            # 检查OpenID是否已存在
-            if Student.objects.filter(openid=openid).exists():
-                return JsonResponse({'success': False, 'message': '该微信OpenID已被使用'})
+            # 自动生成微信OpenID（临时方案，实际应该通过微信登录获取）
+            openid = f"wx_openid_{stu_id}"
             
             # 获取专业对象（如果指定了专业）
             major = None
@@ -594,22 +641,21 @@ def update_student(request):
             stu_name = data.get('stu_name')
             stu_sex = data.get('stu_sex')
             major_id = data.get('major_id')
-            openid = data.get('openid')
             
-            if not original_stu_id or not stu_id or not stu_name or not stu_sex or not openid:
+            if not original_stu_id or not stu_id or not stu_name or not stu_sex:
                 return JsonResponse({'success': False, 'message': '请填写必要信息'})
             
             student = get_object_or_404(Student, stu_id=original_stu_id)
             
-            # 如果学号有变化，检查新学号是否已存在
+            # 如果学号有变化，检查新学号是否已存在，并更新openid
             if stu_id != original_stu_id:
                 if Student.objects.filter(stu_id=stu_id).exists():
                     return JsonResponse({'success': False, 'message': '新学号已存在'})
-            
-            # 如果OpenID有变化，检查新OpenID是否已存在
-            if openid != student.openid:
-                if Student.objects.filter(openid=openid).exists():
-                    return JsonResponse({'success': False, 'message': '该微信OpenID已被使用'})
+                # 如果学号改变，重新生成openid
+                openid = f"wx_openid_{stu_id}"
+            else:
+                # 学号未变，保持原有openid
+                openid = student.openid
             
             # 获取专业对象
             major = None
@@ -669,6 +715,52 @@ def update_teacher(request):
             teacher.save()
             
             return JsonResponse({'success': True, 'message': '教师信息更新成功'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+    
+    return JsonResponse({'success': False, 'message': '无效的请求方法'})
+
+@login_required
+@user_passes_test(is_admin)
+@csrf_exempt
+def add_course(request):
+    """添加课程"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            course_id = data.get('course_id')
+            course_name = data.get('course_name')
+            dept_id = data.get('dept_id')
+            
+            if not course_id or not course_name or not dept_id:
+                return JsonResponse({'success': False, 'message': '请填写完整信息'})
+            
+            # 检查课程ID是否已存在
+            if Course.objects.filter(course_id=course_id).exists():
+                return JsonResponse({'success': False, 'message': '该课程编号已存在'})
+            
+            # 检查院系是否存在
+            try:
+                department = Department.objects.get(dept_id=dept_id)
+            except Department.DoesNotExist:
+                return JsonResponse({'success': False, 'message': '所选院系不存在'})
+            
+            # 创建课程
+            course = Course.objects.create(
+                course_id=course_id,
+                course_name=course_name,
+                dept=department
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'message': '课程添加成功',
+                'course_data': {
+                    'course_id': course.course_id,
+                    'course_name': course.course_name,
+                    'dept_name': department.dept_name
+                }
+            })
         except Exception as e:
             return JsonResponse({'success': False, 'message': str(e)})
     
@@ -776,9 +868,19 @@ def manage_teaching_assignment(request, course_id):
         course = get_object_or_404(Course, course_id=course_id)
         teaching_assignments = TeachingAssignment.objects.filter(course=course).select_related('teacher__dept')
         
+        # 获取该课程的课程时间安排
+        class_schedules = ClassSchedule.objects.filter(
+            assignment__course=course
+        ).select_related('assignment__teacher', 'assignment__teacher__dept').order_by('class_date', 'start_period')
+        
+        # 获取所有教师用于下拉选择
+        teachers = Teacher.objects.all().select_related('dept')
+        
         context = {
             'course': course,
             'teaching_assignments': teaching_assignments,
+            'class_schedules': class_schedules,
+            'teachers': teachers,
         }
         return render(request, 'admin/manage_teaching_assignment.html', context)
     except Exception as e:
@@ -812,23 +914,21 @@ def add_enrollment(request):
             data = json.loads(request.body)
             course_id = data.get('course_id')
             student_id = data.get('student_id')
-            semester = data.get('semester')
             
-            if not course_id or not student_id or not semester:
+            if not course_id or not student_id:
                 return JsonResponse({'success': False, 'message': '参数不完整'})
             
             course = get_object_or_404(Course, course_id=course_id)
             student = get_object_or_404(Student, stu_id=student_id)
             
             # 检查是否已存在相同的选课记录
-            if Enrollment.objects.filter(student=student, course=course, semester=semester).exists():
+            if Enrollment.objects.filter(student=student, course=course).exists():
                 return JsonResponse({'success': False, 'message': '该学生已经选修此课程'})
             
             # 创建选课记录
             enrollment = Enrollment.objects.create(
                 student=student,
-                course=course,
-                semester=semester
+                course=course
             )
             
             return JsonResponse({'success': True, 'message': '选课记录添加成功'})
@@ -945,6 +1045,142 @@ def delete_teaching_assignment(request):
             assignment.delete()
             
             return JsonResponse({'success': True, 'message': '教学安排删除成功'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+    
+    return JsonResponse({'success': False, 'message': '无效的请求方法'})
+
+@login_required
+@user_passes_test(is_admin)
+@csrf_exempt
+def add_class_schedule(request):
+    """添加课程时间安排"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            course_id = data.get('course_id')
+            teacher_id = data.get('teacher_id')
+            class_date = data.get('class_date')
+            weekday = data.get('weekday')
+            start_period = data.get('start_period')
+            end_period = data.get('end_period')
+            location = data.get('location')
+            
+            if not all([course_id, teacher_id, class_date, weekday, start_period, end_period, location]):
+                return JsonResponse({'success': False, 'message': '参数不完整'})
+            
+            course = get_object_or_404(Course, course_id=course_id)
+            teacher = get_object_or_404(Teacher, teacher_id=teacher_id)
+            
+            # 获取或创建教学安排
+            assignment, created = TeachingAssignment.objects.get_or_create(
+                course=course,
+                teacher=teacher
+            )
+            
+            # 检查时间冲突（同一日期、同一时间段、同一地点）
+            if ClassSchedule.objects.filter(
+                class_date=class_date,
+                location=location,
+                start_period__lte=end_period,
+                end_period__gte=start_period
+            ).exists():
+                return JsonResponse({'success': False, 'message': '该日期、时间段和地点已有其他课程安排'})
+            
+            # 创建课程时间安排
+            schedule = ClassSchedule.objects.create(
+                assignment=assignment,
+                class_date=class_date,
+                weekday=weekday,
+                start_period=start_period,
+                end_period=end_period,
+                location=location
+            )
+            
+            return JsonResponse({'success': True, 'message': '课程时间安排添加成功'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+    
+    return JsonResponse({'success': False, 'message': '无效的请求方法'})
+
+@login_required
+@user_passes_test(is_admin)
+@csrf_exempt
+def update_class_schedule(request):
+    """更新课程时间安排"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            schedule_id = data.get('schedule_id')
+            teacher_id = data.get('teacher_id')
+            class_date = data.get('class_date')
+            weekday = data.get('weekday')
+            start_period = data.get('start_period')
+            end_period = data.get('end_period')
+            location = data.get('location')
+            
+            if not all([schedule_id, teacher_id, class_date, weekday, start_period, end_period, location]):
+                return JsonResponse({'success': False, 'message': '参数不完整'})
+            
+            schedule = get_object_or_404(ClassSchedule, schedule_id=schedule_id)
+            teacher = get_object_or_404(Teacher, teacher_id=teacher_id)
+            
+            # 检查时间冲突（排除当前记录，同一日期、同一时间段、同一地点）
+            if ClassSchedule.objects.filter(
+                class_date=class_date,
+                location=location,
+                start_period__lte=end_period,
+                end_period__gte=start_period
+            ).exclude(schedule_id=schedule_id).exists():
+                return JsonResponse({'success': False, 'message': '该日期、时间段和地点已有其他课程安排'})
+            
+            # 如果教师变更，需要更新或创建新的教学安排
+            if schedule.assignment.teacher != teacher:
+                # 获取或创建新的教学安排
+                new_assignment, created = TeachingAssignment.objects.get_or_create(
+                    course=schedule.assignment.course,
+                    teacher=teacher
+                )
+                schedule.assignment = new_assignment
+            
+            # 更新课程时间安排
+            schedule.class_date = class_date
+            schedule.weekday = weekday
+            schedule.start_period = start_period
+            schedule.end_period = end_period
+            schedule.location = location
+            schedule.save()
+            
+            return JsonResponse({'success': True, 'message': '课程时间安排更新成功'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+    
+    return JsonResponse({'success': False, 'message': '无效的请求方法'})
+
+@login_required
+@user_passes_test(is_admin)
+@csrf_exempt
+def delete_class_schedule(request):
+    """删除课程时间安排"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            schedule_id = data.get('schedule_id')
+            
+            if not schedule_id:
+                return JsonResponse({'success': False, 'message': '参数不完整'})
+            
+            schedule = get_object_or_404(ClassSchedule, schedule_id=schedule_id)
+            assignment = schedule.assignment
+            
+            # 删除课程时间安排
+            schedule.delete()
+            
+            # 如果该教学安排下没有其他课程安排了，也删除教学安排
+            if not ClassSchedule.objects.filter(assignment=assignment).exists():
+                assignment.delete()
+            
+            return JsonResponse({'success': True, 'message': '课程时间安排删除成功'})
         except Exception as e:
             return JsonResponse({'success': False, 'message': str(e)})
     

@@ -70,7 +70,6 @@
                                 <th>性别</th>
                                 <th>专业</th>
                                 <th>院系</th>
-                                <th>学期</th>
                                 <th>操作</th>
                             </tr>
                         </thead>
@@ -100,19 +99,12 @@
                                             <span class="text-muted">-</span>
                                         {% endif %}
                                     </td>
-                                    <td>{{ enrollment.semester }}</td>
                                     <td>
-                                        <div class="btn-group btn-group-sm">
-                                            <button class="btn btn-outline-primary" title="查看考勤"
-                                                    onclick="viewAttendance('{{ enrollment.student.stu_id }}', '{{ enrollment.student.stu_name }}')">
-                                                <i class="fas fa-chart-line"></i>
-                                            </button>
-                                            <button class="btn btn-outline-danger delete-btn" title="移除选课"
-                                                    data-enroll-id="{{ enrollment.enroll_id }}" 
-                                                    data-student-name="{{ enrollment.student.stu_name }}">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </div>
+                                        <button class="btn btn-outline-danger btn-sm delete-btn" title="移除选课"
+                                                data-enroll-id="{{ enrollment.enroll_id }}" 
+                                                data-student-name="{{ enrollment.student.stu_name }}">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
                                     </td>
                                 </tr>
                             {% endfor %}
@@ -151,11 +143,7 @@
                             <option value="">请选择学生</option>
                         </select>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">选课学期 <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" name="semester" 
-                               placeholder="例如：202401" value="202401" required>
-                    </div>
+
                 </form>
             </div>
             <div class="modal-footer">
@@ -210,11 +198,10 @@ function saveEnrollment() {
     const formData = new FormData(document.getElementById('addEnrollmentForm'));
     const data = {
         'course_id': formData.get('course_id'),
-        'student_id': formData.get('student_id'),
-        'semester': formData.get('semester')
+        'student_id': formData.get('student_id')
     };
     
-    if (!data.student_id || !data.semester) {
+    if (!data.student_id) {
         alert('请填写完整信息！');
         return;
     }
@@ -266,9 +253,6 @@ function deleteEnrollment(enrollId, studentName) {
     }
 }
 
-function viewAttendance(studentId, studentName) {
-    // 跳转到学生考勤记录页面
-    window.location.href = `/teacher/course/${encodeURIComponent('{{ course.course_id }}')}/student/${studentId}/attendance/`;
-}
+
 </script>
 {% endblock %} 

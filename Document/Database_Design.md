@@ -78,7 +78,7 @@
 9.  **考勤事件 (AttendanceEvent):** 考勤事件ID (PK), 课程代码 (FK), 扫码有效开始时间, 扫码有效结束时间, 事件日期, 事件状态
 10. **管理员 (Admin):** 管理员ID (PK), 管理员姓名
 11. **教学安排 (TeachingAssignment):** 教学安排ID (PK), 教师工号 (FK), 课程代码 (FK)
-12. **课程时间安排 (ClassSchedule):** 时间安排ID (PK), 教学安排ID (FK), 星期几, 开始节次, 结束节次, 上课地点
+12. **课程时间安排 (ClassSchedule):** 时间安排ID (PK), 教学安排ID (FK), 上课日期, 星期几, 开始节次, 结束节次, 上课地点
 
 
 #### 3.3 关系描述 (Relationship Descriptions)
@@ -274,6 +274,7 @@ CREATE TABLE `TeachingAssignment` (
 CREATE TABLE `ClassSchedule` (
   `schedule_id` int unsigned NOT NULL AUTO_INCREMENT COMMENT '时间安排ID',
   `assign_id` int unsigned NOT NULL COMMENT '教学安排ID',
+  `class_date` date NOT NULL COMMENT '上课日期',
   `day_of_week` tinyint unsigned NOT NULL COMMENT '星期几',
   `start_period` tinyint unsigned NOT NULL COMMENT '开始节次',
   `end_period` tinyint unsigned NOT NULL COMMENT '结束节次',

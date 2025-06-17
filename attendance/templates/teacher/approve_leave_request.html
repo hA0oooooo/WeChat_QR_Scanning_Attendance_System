@@ -5,7 +5,7 @@
 {% block content %}
 <div class="row">
     <!-- 请假申请详情 -->
-    <div class="col-md-8">
+    <div class="col-md-12">
         <div class="card mb-4">
             <div class="card-header">
                 <h5 class="mb-0">
@@ -160,81 +160,7 @@
         {% endif %}
     </div>
 
-    <!-- 考勤信息 -->
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-chart-pie me-2"></i>考勤统计
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="list-group list-group-flush">
-                    <div class="list-group-item">
-                        <div class="d-flex justify-content-between">
-                            <span class="text-muted">总人数</span>
-                            <span class="fw-bold">{{ event.total_count }}</span>
-                        </div>
-                    </div>
-                    <div class="list-group-item">
-                        <div class="d-flex justify-content-between">
-                            <span class="text-muted">出勤人数</span>
-                            <span class="fw-bold text-success">{{ event.present_count }}</span>
-                        </div>
-                    </div>
-                    <div class="list-group-item">
-                        <div class="d-flex justify-content-between">
-                            <span class="text-muted">缺勤人数</span>
-                            <span class="fw-bold text-danger">{{ event.absent_count }}</span>
-                        </div>
-                    </div>
-                    <div class="list-group-item">
-                        <div class="d-flex justify-content-between">
-                            <span class="text-muted">请假人数</span>
-                            <span class="fw-bold text-info">{{ event.leave_count }}</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- 考勤事件信息 -->
-        <div class="card mt-4">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-calendar-alt me-2"></i>考勤事件信息
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="list-group list-group-flush">
-                    <div class="list-group-item">
-                        <div class="d-flex justify-content-between">
-                            <span class="text-muted">开始时间</span>
-                            <span class="fw-bold">{{ event.scan_start_time }}</span>
-                        </div>
-                    </div>
-                    <div class="list-group-item">
-                        <div class="d-flex justify-content-between">
-                            <span class="text-muted">结束时间</span>
-                            <span class="fw-bold">{{ event.scan_end_time }}</span>
-                        </div>
-                    </div>
-                    <div class="list-group-item">
-                        <div class="d-flex justify-content-between">
-                            <span class="text-muted">事件状态</span>
-                            <span class="fw-bold">
-                                {% if event.event_status == 1 %}
-                                <span class="badge bg-success">有效</span>
-                                {% else %}
-                                <span class="badge bg-danger">无效</span>
-                                {% endif %}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 
 {% block extra_js %}

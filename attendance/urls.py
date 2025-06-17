@@ -7,7 +7,8 @@ from .views import (
     manage_attendance_events, toggle_event_status,
     create_attendance_event, view_attendance_results,
     leave_request_list, approve_leave_request, teacher_profile,
-    event_qr_code, event_detail,
+    event_qr_code, event_detail, teacher_statistics,
+    teacher_update_profile, teacher_change_password,
     admin_dashboard, student_course_attendance,
     course_all_students_attendance, wechat_views,
     scan_qr_page,
@@ -18,9 +19,10 @@ from .views.admin_views import (
     admin_statistics, admin_profile, update_department, delete_department,
     update_major, delete_major, add_department, add_major,
     get_majors, get_departments, get_teachers, get_students, add_student, add_teacher, delete_student, delete_teacher,
-    update_student, update_teacher, update_course, delete_course,
+    update_student, update_teacher, add_course, update_course, delete_course,
     manage_teaching_assignment, manage_enrollment, add_teaching_assignment,
-    update_teaching_assignment, delete_teaching_assignment, add_enrollment, delete_enrollment
+    update_teaching_assignment, delete_teaching_assignment, add_enrollment, delete_enrollment,
+    add_class_schedule, update_class_schedule, delete_class_schedule
 )
 from .views.student_views import update_profile, change_password
 from .views.wechat_notify import wechat_notify
@@ -60,6 +62,7 @@ urlpatterns = [
     path('api/delete-teacher/', delete_teacher, name='delete_teacher'),
     
     # API接口 - 课程管理
+    path('api/add-course/', add_course, name='add_course'),
     path('api/update-course/', update_course, name='update_course'),
     path('api/delete-course/', delete_course, name='delete_course'),
     
@@ -75,6 +78,11 @@ urlpatterns = [
     # API接口 - 选课管理
     path('api/add-enrollment/', add_enrollment, name='add_enrollment'),
     path('api/delete-enrollment/', delete_enrollment, name='delete_enrollment'),
+    
+    # API接口 - 课程时间安排管理
+    path('api/add-class-schedule/', add_class_schedule, name='add_class_schedule'),
+    path('api/update-class-schedule/', update_class_schedule, name='update_class_schedule'),
+    path('api/delete-class-schedule/', delete_class_schedule, name='delete_class_schedule'),
     
     # API接口
     path('api/scan-qr-code/', scan_qr_code, name='scan_qr_code'),
@@ -108,6 +116,9 @@ urlpatterns = [
     path('teacher/leave-requests/', leave_request_list, name='leave_request_list'),
     path('teacher/leave-request/<int:leave_request_id>/approve/', approve_leave_request, name='approve_leave_request'),
     path('teacher/profile/', teacher_profile, name='teacher_profile'),
+    path('teacher/profile/update/', teacher_update_profile, name='teacher_update_profile'),
+    path('teacher/profile/change-password/', teacher_change_password, name='teacher_change_password'),
+    path('teacher/statistics/', teacher_statistics, name='teacher_statistics'),
     path('logout/', LogoutView.as_view(next_page='login'), name='logout'),
     path('wechat/get_openid/', wechat_views.get_openid, name='wechat_get_openid'),
     path('wechat/notify/', wechat_notify, name='wechat_notify'),

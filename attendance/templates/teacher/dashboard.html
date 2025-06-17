@@ -2,6 +2,27 @@
 
 {% block title %}教师仪表盘 - 微信扫码考勤系统{% endblock %}
 
+{% block extra_css %}
+<style>
+.event-past {
+    background: #f8f9fa !important;
+    color: #888 !important;
+}
+
+.event-current {
+    background: #fffbe6 !important;
+    color: #222 !important;
+    font-weight: bold !important;
+    border: 2px solid #007bff !important;
+}
+
+.event-future {
+    background: #fff !important;
+    color: #222 !important;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="row">
     <!-- 教师信息 -->
@@ -52,9 +73,8 @@
                 {% if all_events %}
                     <div id="event-scrollbar" class="d-flex flex-row overflow-auto" style="gap: 12px; scroll-behavior: smooth;">
                         {% for event in all_events %}
-                            <div id="event-{{ event.event_id }}" class="card px-3 py-2 text-center"
-                                style="min-width: 220px; max-width: 220px; border: none;
-                                    {% if event.event_date < now.date %}background: #f8f9fa; color: #888;{% elif event.event_date == now.date and event.scan_start_time <= now.time and event.scan_end_time >= now.time %}background: #fffbe6; color: #222; font-weight: bold; border: 2px solid #007bff;{% else %}background: #fff; color: #222;{% endif %}">
+                            <div id="event-{{ event.event_id }}" class="card px-3 py-2 text-center {% if event.event_date < now.date %}event-past{% elif event.event_date == now.date and event.scan_start_time <= now.time and event.scan_end_time >= now.time %}event-current{% else %}event-future{% endif %}"
+                                style="min-width: 220px; max-width: 220px; border: none;">
                                 <div style="font-size: 1.1em;">
                                     {{ event.course.course_name }}
                                 </div>
@@ -76,7 +96,7 @@
                     <script>
                         // 自动滚动到当前课次（如有），否则滚到最右
                         window.addEventListener('DOMContentLoaded', function() {
-                            var current = document.querySelector('.card.mb-4 #event-scrollbar .card[style*="border: 2px solid"]');
+                            var current = document.querySelector('#event-scrollbar .event-current');
                             var scrollbar = document.getElementById('event-scrollbar');
                             if (current && scrollbar) {
                                 scrollbar.scrollLeft = current.offsetLeft - 24;
@@ -130,29 +150,6 @@
         </div>
     </div>
 
-    <!-- 我的课程 -->
-    <div class="col-md-12">
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-book me-2"></i>我的课程
-                </h5>
-            </div>
-            <div class="card-body">
-                {% if courses %}
-                    <ul class="list-group">
-                        {% for course in courses %}
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <a href="{% url 'course_detail' course.course_id %}">{{ course.course_name }}</a>
-                                <span class="badge bg-info rounded-pill">{{ course.course_id }}</span>
-                            </li>
-                        {% endfor %}
-                    </ul>
-                {% else %}
-                    <p class="text-muted mb-0">暂无课程</p>
-                {% endif %}
-            </div>
-        </div>
-    </div>
+
 </div>
 {% endblock %} 

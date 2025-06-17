@@ -5,32 +5,99 @@
 {% block content %}
 <div class="row">
     <div class="col-md-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-book me-2"></i>我的课程
-                </h5>
-            </div>
-            <div class="card-body">
-                {% if courses %}
-                    <div class="list-group">
-                        {% for course in courses %}
-                            <a href="{% url 'course_detail' course.course_id %}" class="list-group-item list-group-item-action">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <h6 class="mb-1">{{ course.course_name }}</h6>
-                                        <small class="text-muted">{{ course.course_id }}</small>
-                                    </div>
-                                    <span class="badge bg-primary rounded-pill">查看详情</span>
-                                </div>
-                            </a>
-                        {% endfor %}
+        {% if courses_data %}
+            {% for course_data in courses_data %}
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-book me-2"></i>{{ course_data.course.course_name }}
+                        </h5>
+                        <small class="text-muted">课程编号：{{ course_data.course.course_id }} | 院系：{{ course_data.course.dept.dept_name }}</small>
                     </div>
-                {% else %}
-                    <p class="text-muted mb-0">暂无课程</p>
-                {% endif %}
+                    <div class="card-body">
+                        <div class="row">
+                            <!-- 选课学生列表 -->
+                            <div class="col-md-6">
+                                <h6 class="mb-3">
+                                    <i class="fas fa-user-graduate me-2"></i>选课学生列表
+                                </h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>学号</th>
+                                                <th>姓名</th>
+                                                <th>专业</th>
+                                                <th>院系</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for enrollment in course_data.enrollments %}
+                                            <tr>
+                                                <td>{{ enrollment.student.stu_id }}</td>
+                                                <td>{{ enrollment.student.stu_name }}</td>
+                                                <td>{{ enrollment.student.major.major_name }}</td>
+                                                <td>{{ enrollment.student.major.dept.dept_name }}</td>
+                                            </tr>
+                                            {% empty %}
+                                            <tr>
+                                                <td colspan="4" class="text-center py-2">
+                                                    <span class="text-muted">暂无学生选课</span>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <!-- 考勤时间列表 -->
+                            <div class="col-md-6">
+                                <h6 class="mb-3">
+                                    <i class="fas fa-calendar-alt me-2"></i>考勤时间列表
+                                </h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>日期</th>
+                                                <th>星期</th>
+                                                <th>节次</th>
+                                                <th>地点</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for schedule in course_data.schedules %}
+                                            <tr>
+                                                <td>{{ schedule.class_date|date:"m月d日" }}</td>
+                                                <td>{{ schedule.get_weekday_display }}</td>
+                                                <td>第{{ schedule.start_period }}-{{ schedule.end_period }}节</td>
+                                                <td>{{ schedule.location }}</td>
+                                            </tr>
+                                            {% empty %}
+                                            <tr>
+                                                <td colspan="4" class="text-center py-2">
+                                                    <span class="text-muted">暂无时间安排</span>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-book fa-4x text-muted mb-3"></i>
+                    <h5 class="text-muted">暂无课程</h5>
+                    <p class="text-muted">您当前没有分配到任何课程</p>
+                </div>
             </div>
-        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %} 

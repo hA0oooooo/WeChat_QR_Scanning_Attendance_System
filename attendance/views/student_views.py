@@ -7,7 +7,7 @@ from django.db.models import Count, Q
 from django.contrib.auth import authenticate, update_session_auth_hash
 from ..models import (
     Course, AttendanceEvent, Attendance, LeaveRequest, Enrollment,
-    Student, STATUS_PRESENT, STATUS_ABSENT, STATUS_LEAVE, STATUS_NOT_STARTED,
+    Student, ClassSchedule, STATUS_PRESENT, STATUS_ABSENT, STATUS_LEAVE, STATUS_NOT_STARTED,
     LEAVE_PENDING, LEAVE_APPROVED, LEAVE_REJECTED
 )
 from datetime import datetime, date
@@ -95,14 +95,47 @@ def student_courses(request):
     for enrollment in enrollments:
         course = enrollment.course
         
-        # 使用默认的课程信息（郑老师、HGX508等）
-        course_info.append({
-            'enrollment': enrollment,
-            'course': course,
-            'teacher_name': '郑老师',  # 直接使用字符串而不是对象
-            'class_time': '星期三 第3-5节 (9:55-12:30)',
-            'location': 'HGX508',
-        })
+        # 获取该课程的时间安排
+        schedules = ClassSchedule.objects.filter(
+            assignment__course=course
+        ).select_related('assignment__teacher').order_by('class_date')
+        
+        # 组合课程时间信息
+        if schedules.exists():
+            schedule = schedules.first()  # 取第一个时间安排作为主要显示
+            
+            # 格式化时间信息
+            weekday_map = {1: '一', 2: '二', 3: '三', 4: '四', 5: '五', 6: '六', 7: '日'}
+            weekday_name = weekday_map.get(schedule.weekday, str(schedule.weekday))
+            
+            if schedule.start_period == schedule.end_period:
+                period_str = f'第{schedule.start_period}节'
+            else:
+                period_str = f'第{schedule.start_period}-{schedule.end_period}节'
+            
+            # 如果有多个时间安排，显示所有日期
+            if schedules.count() > 1:
+                dates = ', '.join([s.class_date.strftime('%m月%d日') for s in schedules])
+                class_time = f'{dates} 星期{weekday_name} {period_str}'
+            else:
+                class_time = f'{schedule.class_date.strftime("%m月%d日")} 星期{weekday_name} {period_str}'
+            
+            course_info.append({
+                'enrollment': enrollment,
+                'course': course,
+                'teacher_name': schedule.assignment.teacher.teacher_name,
+                'class_time': class_time,
+                'location': schedule.location,
+            })
+        else:
+            # 如果没有时间安排，使用默认值
+            course_info.append({
+                'enrollment': enrollment,
+                'course': course,
+                'teacher_name': '未安排',
+                'class_time': '时间待定',
+                'location': '地点待定',
+            })
     
     context = {
         'student': student,
@@ -233,12 +266,19 @@ def submit_leave_request(request):
                 pass
             
             # 创建请假申请
-            LeaveRequest.objects.create(
+            leave_request = LeaveRequest.objects.create(
                 enrollment=enrollment,
                 event=event,
                 reason=reason,
                 approval_status=LEAVE_PENDING
             )
+            
+            # 设置固定的演示时间：6月18日10:00
+            from django.utils import timezone
+            from datetime import datetime
+            demo_time = timezone.make_aware(datetime(2025, 6, 18, 10, 0))
+            leave_request.submit_time = demo_time
+            leave_request.save()
             
             messages.success(request, '请假申请已提交，等待教师审批')
             return redirect('submit_leave_request')

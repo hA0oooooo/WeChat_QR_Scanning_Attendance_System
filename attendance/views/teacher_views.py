@@ -13,6 +13,9 @@ from io import BytesIO
 from django.conf import settings
 from datetime import datetime, date
 import urllib.parse
+import json
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth import update_session_auth_hash
 
 @login_required
 def teacher_dashboard(request):
@@ -51,12 +54,27 @@ def teacher_dashboard(request):
 @login_required
 def teacher_courses(request):
     """教师课程列表"""
-    # 获取教师的课程
-    teaching_assignments = TeachingAssignment.objects.filter(teacher=request.user.teacher)
-    courses = Course.objects.filter(teachingassignment__in=teaching_assignments)
+    from ..models import ClassSchedule
+    # 获取教师的课程和相关信息
+    teaching_assignments = TeachingAssignment.objects.filter(teacher=request.user.teacher).select_related('course__dept')
+    
+    courses_data = []
+    for assignment in teaching_assignments:
+        course = assignment.course
+        # 获取选课学生列表
+        enrollments = Enrollment.objects.filter(course=course).select_related('student__major__dept')
+        
+        # 获取课程时间安排
+        schedules = ClassSchedule.objects.filter(assignment=assignment).order_by('class_date')
+        
+        courses_data.append({
+            'course': course,
+            'enrollments': enrollments,
+            'schedules': schedules,
+        })
     
     context = {
-        'courses': courses
+        'courses_data': courses_data
     }
     return render(request, 'teacher/courses.html', context)
 
@@ -444,4 +462,142 @@ def event_attendance_records_api(request, event_id):
             'student_id': student.stu_id,
             'status': record.status,  # 1-出勤 2-缺勤 3-请假
         })
-    return JsonResponse({'success': True, 'records': data}) 
+    return JsonResponse({'success': True, 'records': data})
+
+@login_required
+def teacher_statistics(request):
+    """教师统计报表 - 只显示该教师所授课程的统计"""
+    teacher = request.user.teacher
+    
+    # 获取该教师授课的课程
+    teaching_assignments = TeachingAssignment.objects.filter(teacher=teacher)
+    courses = Course.objects.filter(teachingassignment__in=teaching_assignments)
+    
+    course_stats = []
+    from django.utils import timezone
+    today = timezone.now().date()
+    
+    for course in courses:
+        # 获取该课程的所有考勤事件
+        events = AttendanceEvent.objects.filter(course=course)
+        # 只统计已经发生的考勤事件（不包括未来的事件）
+        past_events = events.filter(event_date__lt=today)
+        
+        # 获取所有考勤记录（只统计已发生的事件）
+        enrollments = Enrollment.objects.filter(course=course)
+        all_attendance = Attendance.objects.filter(
+            enrollment__in=enrollments,
+            event__in=past_events
+        ).select_related('event', 'enrollment__student')
+        
+        # 统计总体数据
+        total_count = all_attendance.count()
+        present_count = all_attendance.filter(status=STATUS_PRESENT).count()
+        absent_count = all_attendance.filter(status=STATUS_ABSENT).count()
+        leave_count = all_attendance.filter(status=STATUS_LEAVE).count()
+        
+        # 计算百分比
+        present_rate = round((present_count / total_count * 100), 1) if total_count > 0 else 0
+        absent_rate = round((absent_count / total_count * 100), 1) if total_count > 0 else 0
+        leave_rate = round((leave_count / total_count * 100), 1) if total_count > 0 else 0
+        
+        # 统计单次考勤事件数据（包括所有事件，但区分已发生和未发生）
+        event_stats = []
+        for event in events:
+            event_attendance = all_attendance.filter(event=event)
+            event_total = event_attendance.count()
+            event_present = event_attendance.filter(status=STATUS_PRESENT).count()
+            event_absent = event_attendance.filter(status=STATUS_ABSENT).count()
+            event_leave = event_attendance.filter(status=STATUS_LEAVE).count()
+            
+            event_present_rate = round((event_present / event_total * 100), 1) if event_total > 0 else 0
+            
+            event_stats.append({
+                'event': event,
+                'date': event.event_date,
+                'total_count': event_total,
+                'present_count': event_present,
+                'absent_count': event_absent,
+                'leave_count': event_leave,
+                'present_rate': event_present_rate,
+            })
+        
+        course_stats.append({
+            'course': course,
+            'total_count': total_count,
+            'present_count': present_count,
+            'absent_count': absent_count,
+            'leave_count': leave_count,
+            'present_rate': present_rate,
+            'absent_rate': absent_rate,
+            'leave_rate': leave_rate,
+            'event_stats': event_stats,
+        })
+    
+    # 计算总计用于图表
+    total_present = sum(stat['present_count'] for stat in course_stats)
+    total_absent = sum(stat['absent_count'] for stat in course_stats)
+    total_leave = sum(stat['leave_count'] for stat in course_stats)
+    
+    context = {
+        'course_stats': course_stats,
+        'teacher': teacher,
+        'total_present': total_present,
+        'total_absent': total_absent,
+        'total_leave': total_leave,
+    }
+    return render(request, 'teacher/statistics.html', context)
+
+@login_required
+@csrf_exempt
+def teacher_update_profile(request):
+    """教师个人信息修改"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            field_type = data.get('field_type')
+            new_value = data.get('new_value')
+            
+            teacher = request.user.teacher
+            
+            if field_type == 'name':
+                teacher.teacher_name = new_value
+                teacher.save()
+                return JsonResponse({'success': True, 'message': '姓名修改成功'})
+            
+            return JsonResponse({'success': False, 'message': '不支持的字段类型'})
+            
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+    
+    return JsonResponse({'success': False, 'message': '请求方法错误'})
+
+@login_required
+@csrf_exempt
+def teacher_change_password(request):
+    """教师修改密码"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            old_password = data.get('old_password')
+            new_password = data.get('new_password')
+            
+            user = request.user
+            
+            # 验证旧密码
+            if not user.check_password(old_password):
+                return JsonResponse({'success': False, 'message': '当前密码错误'})
+            
+            # 设置新密码
+            user.set_password(new_password)
+            user.save()
+            
+            # 更新session，防止用户被登出
+            update_session_auth_hash(request, user)
+            
+            return JsonResponse({'success': True, 'message': '密码修改成功'})
+            
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+    
+    return JsonResponse({'success': False, 'message': '请求方法错误'}) 

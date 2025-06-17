@@ -3,94 +3,249 @@
 {% block title %}个人信息 - 微信扫码考勤系统{% endblock %}
 
 {% block content %}
-<div class="row">
-    <!-- 个人信息 -->
-    <div class="col-md-4">
+<div class="row justify-content-center">
+    <!-- 基本信息 -->
+    <div class="col-md-6">
         <div class="card mb-4">
             <div class="card-header">
                 <h5 class="mb-0">
-                    <i class="fas fa-user me-2"></i>个人信息
+                    <i class="fas fa-user me-2"></i>基本信息
                 </h5>
             </div>
-            <div class="card-body">
-                <div class="text-center mb-4">
+            <div class="card-body text-center">
+                <div class="mb-4">
                     <i class="fas fa-user-circle fa-5x text-primary"></i>
                 </div>
-                <div class="list-group list-group-flush">
-                    <div class="list-group-item">
-                        <div class="d-flex justify-content-between">
-                            <span class="text-muted">工号</span>
-                            <span class="fw-bold">{{ teacher.teacher_id }}</span>
+                <h5 class="card-title">{{ teacher.teacher_name }}</h5>
+                <p class="text-muted">{{ teacher.teacher_id }}</p>
+                
+                <div class="list-group list-group-flush mt-4">
+                    <div class="list-group-item d-flex justify-content-between">
+                        <span class="text-muted">工号</span>
+                        <strong>{{ teacher.teacher_id }}</strong>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <span class="text-muted">姓名</span>
+                        <div class="d-flex align-items-center">
+                            <input type="text" class="form-control form-control-sm me-2" style="width: 100px;" 
+                                   id="teacher_name" value="{{ teacher.teacher_name }}" data-original="{{ teacher.teacher_name }}">
+                            <button class="btn btn-sm btn-outline-primary" onclick="updateField('name', 'teacher_name')">
+                                <i class="fas fa-save"></i>
+                            </button>
                         </div>
                     </div>
-                    <div class="list-group-item">
-                        <div class="d-flex justify-content-between">
-                            <span class="text-muted">姓名</span>
-                            <span class="fw-bold">{{ teacher.teacher_name }}</span>
-                        </div>
-                    </div>
-                    <div class="list-group-item">
-                        <div class="d-flex justify-content-between">
-                            <span class="text-muted">性别</span>
-                            <span class="fw-bold">{{ teacher.get_teacher_sex_display }}</span>
-                        </div>
-                    </div>
-                    <div class="list-group-item">
-                        <div class="d-flex justify-content-between">
-                            <span class="text-muted">院系</span>
-                            <span class="fw-bold">{{ teacher.dept.dept_name }}</span>
-                        </div>
+                    <div class="list-group-item d-flex justify-content-between">
+                        <span class="text-muted">院系</span>
+                        <strong>{{ teacher.dept.dept_name }}</strong>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-
-    <!-- 课程列表 -->
-    <div class="col-md-8">
+        
+        <!-- 账户信息 -->
         <div class="card">
             <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-book me-2"></i>我的课程
-                </h5>
+                <h6 class="mb-0">
+                    <i class="fas fa-key me-2"></i>账户信息
+                </h6>
             </div>
             <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>课程代码</th>
-                                <th>课程名称</th>
-                                <th>开课院系</th>
-                                <th>学期</th>
-                                <th>操作</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for course in courses %}
-                            <tr>
-                                <td>{{ course.course_id }}</td>
-                                <td>{{ course.course_name }}</td>
-                                <td>{{ course.dept.dept_name }}</td>
-                                <td>{{ course.semester }}</td>
-                                <td>
-                                    <a href="{% url 'teacher_course_detail' course.course_id %}" class="btn btn-sm btn-primary">
-                                        <i class="fas fa-eye me-1"></i>查看
-                                    </a>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="5" class="text-center py-4">
-                                    <i class="fas fa-info-circle me-2"></i>暂无课程记录
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item d-flex justify-content-between">
+                        <span class="text-muted">用户名</span>
+                        <strong>{{ user.username }}</strong>
+                    </div>
+                </div>
+                <div class="mt-3 d-grid">
+                    <button type="button" class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#passwordModal">
+                        <i class="fas fa-lock me-1"></i>修改密码
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- 修改密码模态框 -->
+<div class="modal fade" id="passwordModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-lock me-2"></i>修改密码
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>安全提醒：</strong>请设置复杂密码，包含字母、数字和特殊字符。
+                </div>
+                <form id="passwordForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="old_password" class="form-label">当前密码</label>
+                        <input type="password" class="form-control" id="old_password" name="old_password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="new_password" class="form-label">新密码</label>
+                        <input type="password" class="form-control" id="new_password" name="new_password" required>
+                        <div class="form-text">密码长度至少8位，建议包含大小写字母、数字和特殊字符</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirm_password" class="form-label">确认新密码</label>
+                        <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-warning" onclick="changePassword()">
+                    <i class="fas fa-save me-1"></i>修改密码
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function updateField(fieldType, inputId) {
+    var input = document.getElementById(inputId);
+    var newValue = input.value.trim();
+    var originalValue = input.getAttribute('data-original');
+    
+    if (!newValue) {
+        alert('请输入有效的内容');
+        input.value = originalValue;
+        return;
+    }
+    
+    if (newValue === originalValue) {
+        alert('内容未发生变化');
+        return;
+    }
+    
+    // 发送AJAX请求更新信息
+    fetch('{% url "teacher_update_profile" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            field_type: fieldType,
+            new_value: newValue
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('信息更新成功');
+            input.setAttribute('data-original', newValue);
+            // 更新页面显示
+            if (fieldType === 'name') {
+                document.querySelector('h5.card-title').textContent = newValue;
+            }
+        } else {
+            alert('更新失败：' + (data.message || '未知错误'));
+            input.value = originalValue;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('网络错误，请稍后重试');
+        input.value = originalValue;
+    });
+}
+
+function changePassword() {
+    var oldPassword = $('#old_password').val();
+    var newPassword = $('#new_password').val();
+    var confirmPassword = $('#confirm_password').val();
+    
+    if (!oldPassword || !newPassword || !confirmPassword) {
+        alert('请填写完整信息');
+        return;
+    }
+    
+    if (newPassword.length < 8) {
+        alert('新密码长度至少8位');
+        return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+        alert('两次输入的新密码不一致');
+        return;
+    }
+    
+    // 发送AJAX请求修改密码
+    fetch('{% url "teacher_change_password" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            old_password: oldPassword,
+            new_password: newPassword
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('密码修改成功');
+            $('#passwordModal').modal('hide');
+            $('#passwordForm')[0].reset();
+        } else {
+            alert('密码修改失败：' + (data.message || '未知错误'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('网络错误，请稍后重试');
+    });
+}
+</script>
+
+<!-- 添加CSRF Token -->
+<input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.bg-light {
+    background-color: #f8f9fa !important;
+}
+
+.list-group-item {
+    border-left: none;
+    border-right: none;
+}
+
+.list-group-item:first-child {
+    border-top: none;
+}
+
+.list-group-item:last-child {
+    border-bottom: none;
+}
+
+.card:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,.1);
+    transition: box-shadow 0.2s ease-in-out;
+}
+
+.modal-content {
+    border: none;
+    border-radius: 0.5rem;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(65, 118, 144, 0.25);
+}
+</style>
 {% endblock %} 
