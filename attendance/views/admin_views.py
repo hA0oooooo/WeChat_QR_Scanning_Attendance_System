@@ -79,18 +79,18 @@ def manage_users(request):
 @user_passes_test(is_admin)
 def manage_departments_majors(request):
     """管理院系和专业"""
-    # 获取院系数据（包含专业和学生统计）
+    # 获取院系数据
     departments = Department.objects.annotate(
         major_count=Count('major', distinct=True),
         student_count=Count('major__student', distinct=True)
     ).order_by('dept_name')
     
-    # 获取专业数据（包含学生统计）
+    # 获取专业数据
     majors = Major.objects.select_related('dept').annotate(
         student_count=Count('student')
     ).order_by('major_name')
     
-    # 获取教师总数和学生总数
+    # 获取统计数据
     teacher_count = Teacher.objects.count()
     student_count = Student.objects.count()
     
@@ -105,8 +105,7 @@ def manage_departments_majors(request):
 @login_required
 @user_passes_test(is_admin)
 def manage_courses(request):
-    """管理课程（包括教学安排和选课信息）"""
-    # 搜索功能
+    """管理课程"""
     search = request.GET.get('search', '')
     
     # 获取课程数据
@@ -121,11 +120,8 @@ def manage_courses(request):
     # 为每个课程添加统计信息
     course_stats = []
     for course in courses:
-        # 获取授课教师
         teaching_assignments = TeachingAssignment.objects.filter(course=course).select_related('teacher')
-        # 获取选课学生数量
         enrollment_count = Enrollment.objects.filter(course=course).count()
-        # 获取考勤事件数量
         event_count = AttendanceEvent.objects.filter(course=course).count()
         
         course_stats.append({
@@ -145,15 +141,14 @@ def manage_courses(request):
 @user_passes_test(is_admin)
 def admin_statistics(request):
     """管理员统计报表"""
-    # 获取所有课程的考勤统计
     courses = Course.objects.all()
     course_stats = []
     
     for course in courses:
-        # 获取该课程的所有考勤记录
+        # 获取该课程的考勤记录
         attendances = Attendance.objects.filter(
             enrollment__course=course
-        ).exclude(status=4)  # 排除未开始状态
+        ).exclude(status=4)
         
         total_count = attendances.count()
         if total_count > 0:
@@ -165,7 +160,7 @@ def admin_statistics(request):
             absent_rate = round((absent_count / total_count) * 100, 1)
             leave_rate = round((leave_count / total_count) * 100, 1)
             
-            # 获取该课程的考勤事件，按日期分组统计
+            # 获取考勤事件统计
             events = AttendanceEvent.objects.filter(course=course).order_by('event_date')
             event_stats = []
             
@@ -197,7 +192,7 @@ def admin_statistics(request):
                 'present_rate': present_rate,
                 'absent_rate': absent_rate,
                 'leave_rate': leave_rate,
-                'event_stats': event_stats,  # 单次考勤统计
+                'event_stats': event_stats,
             })
     
     # 按出勤率排序
@@ -209,7 +204,7 @@ def admin_statistics(request):
     total_courses = Course.objects.count()
     total_events = AttendanceEvent.objects.count()
     
-    # 为图表准备JSON数据
+    # 准备图表数据
     courses_with_events_serializable = []
     for stat in course_stats:
         event_stats_serializable = []
@@ -240,7 +235,7 @@ def admin_statistics(request):
         'leave_total': sum(stat['leave_count'] for stat in course_stats),
         'course_names': [stat['course'].course_name[:8] for stat in course_stats[:5]],
         'present_rates': [stat['present_rate'] for stat in course_stats[:5]],
-        'courses_with_events': courses_with_events_serializable,  # 序列化后的数据
+        'courses_with_events': courses_with_events_serializable,
     }
     chart_data = json.dumps(chart_data_raw)
     
@@ -258,7 +253,6 @@ def admin_statistics(request):
 @user_passes_test(is_admin)
 def admin_profile(request):
     """管理员个人信息"""
-    # 获取系统统计数据
     student_count = Student.objects.count()
     teacher_count = Teacher.objects.count()
     course_count = Course.objects.count()
@@ -1069,39 +1063,87 @@ def add_class_schedule(request):
             if not all([course_id, teacher_id, class_date, weekday, start_period, end_period, location]):
                 return JsonResponse({'success': False, 'message': '参数不完整'})
             
+            # 验证节次范围：1 <= start_period < end_period <= 14
+            start_period = int(start_period)
+            end_period = int(end_period)
+            if not (1 <= start_period < end_period <= 14):
+                return JsonResponse({'success': False, 'message': '节次范围无效，必须是1-14节，且开始节次小于结束节次'})
+            
+            # 转换日期字符串为date对象
+            from datetime import datetime
+            try:
+                class_date_obj = datetime.strptime(class_date, '%Y-%m-%d').date()
+            except ValueError:
+                return JsonResponse({'success': False, 'message': '日期格式无效'})
+            
             course = get_object_or_404(Course, course_id=course_id)
             teacher = get_object_or_404(Teacher, teacher_id=teacher_id)
             
-            # 获取或创建教学安排
+            # 查找或创建教学安排
             assignment, created = TeachingAssignment.objects.get_or_create(
                 course=course,
-                teacher=teacher
+                teacher=teacher,
+                defaults={'semester': '2024-2025-2'}
             )
-            
-            # 检查时间冲突（同一日期、同一时间段、同一地点）
-            if ClassSchedule.objects.filter(
-                class_date=class_date,
-                location=location,
-                start_period__lte=end_period,
-                end_period__gte=start_period
-            ).exists():
-                return JsonResponse({'success': False, 'message': '该日期、时间段和地点已有其他课程安排'})
-            
             # 创建课程时间安排
             schedule = ClassSchedule.objects.create(
                 assignment=assignment,
-                class_date=class_date,
+                class_date=class_date_obj,
                 weekday=weekday,
                 start_period=start_period,
                 end_period=end_period,
                 location=location
             )
             
-            return JsonResponse({'success': True, 'message': '课程时间安排添加成功'})
+            # 自动创建对应的考勤事件
+            from attendance.models import AttendanceEvent, Attendance, Enrollment
+            import pytz
+            
+            # 获取课程的开始和结束时间
+            start_datetime = schedule.get_start_datetime()
+            end_datetime = schedule.get_end_datetime()
+            
+            # 转换为UTC时间（因为数据库存储UTC时间）
+            tz = pytz.timezone('Asia/Shanghai')
+            start_datetime_local = tz.localize(start_datetime)
+            end_datetime_local = tz.localize(end_datetime)
+            start_datetime_utc = start_datetime_local.astimezone(pytz.UTC)
+            end_datetime_utc = end_datetime_local.astimezone(pytz.UTC)
+            
+            # 创建考勤事件
+            attendance_event = AttendanceEvent.objects.create(
+                course=course,
+                event_date=class_date_obj,
+                scan_start_time=start_datetime_utc,
+                scan_end_time=end_datetime_utc,
+                status=1
+            )
+            
+            # 为所有选课学生创建考勤记录
+            enrollments = Enrollment.objects.filter(course=course)
+            attendance_records = []
+            for enrollment in enrollments:
+                attendance_records.append(Attendance(
+                    enrollment=enrollment,
+                    event=attendance_event,
+                    status=4  # 4表示未开始状态
+                ))
+            
+            # 批量创建考勤记录
+            if attendance_records:
+                Attendance.objects.bulk_create(attendance_records)
+            
+            return JsonResponse({
+                'success': True, 
+                'message': f'课程时间安排添加成功，考勤事件已自动创建，已为{len(attendance_records)}名学生创建考勤记录',
+                'schedule_id': schedule.schedule_id,
+                'event_id': attendance_event.event_id
+            })
+            
         except Exception as e:
-            return JsonResponse({'success': False, 'message': str(e)})
+            return JsonResponse({'success': False, 'message': f'添加失败: {str(e)}'})
     
-    return JsonResponse({'success': False, 'message': '无效的请求方法'})
+    return JsonResponse({'success': False, 'message': '请求方法不支持'})
 
 @login_required
 @user_passes_test(is_admin)
@@ -1122,40 +1164,104 @@ def update_class_schedule(request):
             if not all([schedule_id, teacher_id, class_date, weekday, start_period, end_period, location]):
                 return JsonResponse({'success': False, 'message': '参数不完整'})
             
+            # 验证节次范围：1 <= start_period < end_period <= 14
+            start_period = int(start_period)
+            end_period = int(end_period)
+            if not (1 <= start_period < end_period <= 14):
+                return JsonResponse({'success': False, 'message': '节次范围无效，必须是1-14节，且开始节次小于结束节次'})
+            
+            # 转换日期字符串为date对象
+            from datetime import datetime
+            try:
+                class_date_obj = datetime.strptime(class_date, '%Y-%m-%d').date()
+            except ValueError:
+                return JsonResponse({'success': False, 'message': '日期格式无效'})
+            
             schedule = get_object_or_404(ClassSchedule, schedule_id=schedule_id)
             teacher = get_object_or_404(Teacher, teacher_id=teacher_id)
             
-            # 检查时间冲突（排除当前记录，同一日期、同一时间段、同一地点）
-            if ClassSchedule.objects.filter(
-                class_date=class_date,
-                location=location,
-                start_period__lte=end_period,
-                end_period__gte=start_period
-            ).exclude(schedule_id=schedule_id).exists():
-                return JsonResponse({'success': False, 'message': '该日期、时间段和地点已有其他课程安排'})
-            
-            # 如果教师变更，需要更新或创建新的教学安排
-            if schedule.assignment.teacher != teacher:
-                # 获取或创建新的教学安排
-                new_assignment, created = TeachingAssignment.objects.get_or_create(
-                    course=schedule.assignment.course,
-                    teacher=teacher
-                )
-                schedule.assignment = new_assignment
-            
+            # 查找或创建教学安排
+            assignment, created = TeachingAssignment.objects.get_or_create(
+                course=schedule.assignment.course,
+                teacher=teacher,
+                defaults={'semester': '2024-2025-2'}
+            )
             # 更新课程时间安排
-            schedule.class_date = class_date
+            schedule.assignment = assignment
+            schedule.class_date = class_date_obj
             schedule.weekday = weekday
             schedule.start_period = start_period
             schedule.end_period = end_period
             schedule.location = location
             schedule.save()
             
-            return JsonResponse({'success': True, 'message': '课程时间安排更新成功'})
+            # 更新对应的考勤事件
+            from attendance.models import AttendanceEvent
+            import pytz
+            
+            # 获取新的开始和结束时间
+            start_datetime = schedule.get_start_datetime()
+            end_datetime = schedule.get_end_datetime()
+            
+            # 转换为UTC时间
+            tz = pytz.timezone('Asia/Shanghai')
+            start_datetime_local = tz.localize(start_datetime)
+            end_datetime_local = tz.localize(end_datetime)
+            start_datetime_utc = start_datetime_local.astimezone(pytz.UTC)
+            end_datetime_utc = end_datetime_local.astimezone(pytz.UTC)
+            
+            # 查找并更新考勤事件
+            attendance_events = AttendanceEvent.objects.filter(
+                course=schedule.assignment.course,
+                event_date=class_date_obj
+            )
+            
+            updated_event_count = 0
+            for event in attendance_events:
+                # 直接更新该日期的考勤事件，不再进行时间匹配
+                event.scan_start_time = start_datetime_utc
+                event.scan_end_time = end_datetime_utc
+                event.save()
+                updated_event_count += 1
+            
+            # 如果没有找到考勤事件，创建一个新的
+            if updated_event_count == 0:
+                from attendance.models import Attendance, Enrollment
+                
+                # 创建新的考勤事件
+                attendance_event = AttendanceEvent.objects.create(
+                    course=schedule.assignment.course,
+                    event_date=class_date_obj,
+                    scan_start_time=start_datetime_utc,
+                    scan_end_time=end_datetime_utc,
+                    status=1
+                )
+                
+                # 为所有选课学生创建考勤记录
+                enrollments = Enrollment.objects.filter(course=schedule.assignment.course)
+                attendance_records = []
+                for enrollment in enrollments:
+                    attendance_records.append(Attendance(
+                        enrollment=enrollment,
+                        event=attendance_event,
+                        status=4  # 4表示未开始状态
+                    ))
+                
+                # 批量创建考勤记录
+                if attendance_records:
+                    Attendance.objects.bulk_create(attendance_records)
+                
+                updated_event_count = 1
+            
+            return JsonResponse({
+                'success': True, 
+                'message': f'课程时间安排更新成功，已更新{updated_event_count}个考勤事件'
+            })
+            
         except Exception as e:
-            return JsonResponse({'success': False, 'message': str(e)})
+            return JsonResponse({'success': False, 'message': f'更新失败: {str(e)}'})
     
-    return JsonResponse({'success': False, 'message': '无效的请求方法'})
+    return JsonResponse({'success': False, 'message': '请求方法不支持'})
 
 @login_required
 @user_passes_test(is_admin)
@@ -1172,16 +1278,69 @@ def delete_class_schedule(request):
             
             schedule = get_object_or_404(ClassSchedule, schedule_id=schedule_id)
             assignment = schedule.assignment
+            course = assignment.course
+            class_date = schedule.class_date
+            
+            # 查找并删除对应的考勤事件
+            from attendance.models import AttendanceEvent, Attendance
+            import pytz
+            
+            # 获取课程的开始和结束时间（UTC）
+            start_datetime = schedule.get_start_datetime()
+            end_datetime = schedule.get_end_datetime()
+            
+            # 转换为UTC时间
+            tz = pytz.timezone('Asia/Shanghai')
+            start_datetime_local = tz.localize(start_datetime)
+            end_datetime_local = tz.localize(end_datetime)
+            start_datetime_utc = start_datetime_local.astimezone(pytz.UTC)
+            end_datetime_utc = end_datetime_local.astimezone(pytz.UTC)
+            
+            # 查找并删除对应的考勤事件（简化匹配逻辑）
+            attendance_events = AttendanceEvent.objects.filter(
+                course=course,
+                event_date=class_date
+            )
+            
+            deleted_event_count = 0
+            deleted_attendance_count = 0
+            
+            for event in attendance_events:
+                # 检查时间是否匹配（允许一定的误差范围）
+                from datetime import timedelta
+                
+                # 将time对象转换为datetime对象进行比较
+                from datetime import datetime, date
+                today = date.today()
+                event_start_datetime = datetime.combine(today, event.scan_start_time.time())
+                event_end_datetime = datetime.combine(today, event.scan_end_time.time())
+                schedule_start_datetime = datetime.combine(today, start_datetime_utc.time())
+                schedule_end_datetime = datetime.combine(today, end_datetime_utc.time())
+                
+                # 计算时间差（分钟）
+                start_time_diff = abs((event_start_datetime - schedule_start_datetime).total_seconds() / 60)
+                end_time_diff = abs((event_end_datetime - schedule_end_datetime).total_seconds() / 60)
+                
+                # 如果时间差在30分钟内，认为是匹配的
+                if start_time_diff <= 30 and end_time_diff <= 30:
+                    # 先删除相关的考勤记录
+                    attendance_records = Attendance.objects.filter(event=event)
+                    deleted_attendance_count += attendance_records.count()
+                    attendance_records.delete()
+                    
+                    # 删除考勤事件
+                    event.delete()
+                    deleted_event_count += 1
             
             # 删除课程时间安排
             schedule.delete()
             
-            # 如果该教学安排下没有其他课程安排了，也删除教学安排
-            if not ClassSchedule.objects.filter(assignment=assignment).exists():
-                assignment.delete()
+            return JsonResponse({
+                'success': True, 
+                'message': f'课程时间安排删除成功，已删除{deleted_event_count}个考勤事件和{deleted_attendance_count}条考勤记录'
+            })
             
-            return JsonResponse({'success': True, 'message': '课程时间安排删除成功'})
         except Exception as e:
-            return JsonResponse({'success': False, 'message': str(e)})
+            return JsonResponse({'success': False, 'message': f'删除失败: {str(e)}'})
     
-    return JsonResponse({'success': False, 'message': '无效的请求方法'}) 
+    return JsonResponse({'success': False, 'message': '请求方法不支持'}) 

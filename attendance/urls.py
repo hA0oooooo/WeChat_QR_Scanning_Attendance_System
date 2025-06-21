@@ -27,13 +27,14 @@ from .views.admin_views import (
 from .views.student_views import update_profile, change_password
 from .views.wechat_notify import wechat_notify
 from django.contrib.auth.views import LogoutView
+from .views.wechat_views import scan_qr_page as wechat_scan_qr_page, scan_qr_code as wechat_scan_qr_code
 
 urlpatterns = [
     # 基础页面
     path('', index, name='index'),
     path('login/', login_view, name='login'),
     
-    # 管理员相关
+    # 管理员页面
     path('manage/dashboard/', admin_dashboard, name='admin_dashboard'),
     path('manage/users/', manage_users, name='manage_users'),
     path('manage/departments-majors/', manage_departments_majors, name='manage_departments_majors'),
@@ -41,7 +42,7 @@ urlpatterns = [
     path('manage/statistics/', admin_statistics, name='admin_statistics'),
     path('manage/profile/', admin_profile, name='admin_profile'),
     
-    # API接口 - 院系专业管理
+    # 管理员API - 院系专业
     path('api/get-departments/', get_departments, name='get_departments'),
     path('api/get-majors/', get_majors, name='get_majors'),
     path('api/get-teachers/', get_teachers, name='get_teachers'),
@@ -53,7 +54,7 @@ urlpatterns = [
     path('api/update-major/', update_major, name='update_major'),
     path('api/delete-major/', delete_major, name='delete_major'),
     
-    # API接口 - 人员管理
+    # 管理员API - 人员管理
     path('api/add-student/', add_student, name='add_student'),
     path('api/update-student/', update_student, name='update_student'),
     path('api/delete-student/', delete_student, name='delete_student'),
@@ -61,34 +62,34 @@ urlpatterns = [
     path('api/update-teacher/', update_teacher, name='update_teacher'),
     path('api/delete-teacher/', delete_teacher, name='delete_teacher'),
     
-    # API接口 - 课程管理
+    # 管理员API - 课程管理
     path('api/add-course/', add_course, name='add_course'),
     path('api/update-course/', update_course, name='update_course'),
     path('api/delete-course/', delete_course, name='delete_course'),
     
-    # 管理页面 - 课程相关
+    # 管理员页面 - 课程相关
     path('manage/teaching-assignment/<path:course_id>/', manage_teaching_assignment, name='manage_teaching_assignment'),
     path('manage/enrollment/<path:course_id>/', manage_enrollment, name='manage_enrollment'),
     
-    # API接口 - 教学安排管理
+    # 管理员API - 教学安排
     path('api/add-teaching-assignment/', add_teaching_assignment, name='add_teaching_assignment'),
     path('api/update-teaching-assignment/', update_teaching_assignment, name='update_teaching_assignment'),
     path('api/delete-teaching-assignment/', delete_teaching_assignment, name='delete_teaching_assignment'),
     
-    # API接口 - 选课管理
+    # 管理员API - 选课管理
     path('api/add-enrollment/', add_enrollment, name='add_enrollment'),
     path('api/delete-enrollment/', delete_enrollment, name='delete_enrollment'),
     
-    # API接口 - 课程时间安排管理
+    # 管理员API - 课程时间安排
     path('api/add-class-schedule/', add_class_schedule, name='add_class_schedule'),
     path('api/update-class-schedule/', update_class_schedule, name='update_class_schedule'),
     path('api/delete-class-schedule/', delete_class_schedule, name='delete_class_schedule'),
     
-    # API接口
+    # 通用API
     path('api/scan-qr-code/', scan_qr_code, name='scan_qr_code'),
     path('api/check-attendance/', check_attendance, name='check_attendance'),
     
-    # 学生相关
+    # 学生页面
     path('student/dashboard/', student_dashboard, name='student_dashboard'),
     path('student/courses/', student_courses, name='student_courses'),
     path('student/course/<path:course_id>/', student_course_detail, name='student_course_detail'),
@@ -100,15 +101,15 @@ urlpatterns = [
     path('student/profile/update/', update_profile, name='update_profile'),
     path('student/profile/change-password/', change_password, name='change_password'),
     
-    # 教师相关
+    # 教师页面
     path('teacher/dashboard/', teacher_dashboard, name='teacher_dashboard'),
     path('teacher/courses/', teacher_courses, name='teacher_courses'),
-    path('teacher/course/<path:course_id>/', course_detail, name='course_detail'),
-    path('teacher/course/<path:course_id>/all-attendance/', course_all_students_attendance, name='course_all_students_attendance'),
     path('teacher/course/<path:course_id>/student/<str:stu_id>/attendance/', student_course_attendance, name='student_course_attendance'),
+    path('teacher/course/<path:course_id>/all-attendance/', course_all_students_attendance, name='course_all_students_attendance'),
     path('teacher/course/<path:course_id>/events/', manage_attendance_events, name='manage_attendance_events'),
-    path('teacher/event/<int:event_id>/toggle/', toggle_event_status, name='toggle_event_status'),
     path('teacher/course/<path:course_id>/attendance/create/', create_attendance_event, name='create_attendance_event'),
+    path('teacher/course/<path:course_id>/', course_detail, name='course_detail'),
+    path('teacher/event/<int:event_id>/toggle/', toggle_event_status, name='toggle_event_status'),
     path('teacher/event/<int:event_id>/qr/', event_qr_code, name='event_qr_code'),
     path('teacher/event/<int:event_id>/results/', view_attendance_results, name='view_attendance_results'),
     path('teacher/event/<int:event_id>/detail/', event_detail, name='event_detail'),
@@ -119,8 +120,11 @@ urlpatterns = [
     path('teacher/profile/update/', teacher_update_profile, name='teacher_update_profile'),
     path('teacher/profile/change-password/', teacher_change_password, name='teacher_change_password'),
     path('teacher/statistics/', teacher_statistics, name='teacher_statistics'),
+    
+    # 系统功能
     path('logout/', LogoutView.as_view(next_page='login'), name='logout'),
     path('wechat/get_openid/', wechat_views.get_openid, name='wechat_get_openid'),
     path('wechat/notify/', wechat_notify, name='wechat_notify'),
-    path('scan-qr-page/', scan_qr_page, name='scan_qr_page'),
+    path('scan-qr-page/', wechat_scan_qr_page, name='scan_qr_page'),
+    path('scan-qr-code/', wechat_scan_qr_code, name='scan_qr_code'),
 ] 

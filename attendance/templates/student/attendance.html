@@ -111,7 +111,7 @@
                                     </td>
                                     <td>
                                         <div>
-                                            <strong>{{ record.event.event_date }}</strong>
+                                            <strong>{{ record.event.event_date|date:"Y年m月d日" }}</strong>
                                             <br>
                                             <small class="text-muted">{{ record.event.event_date|date:"l" }}</small>
                                         </div>

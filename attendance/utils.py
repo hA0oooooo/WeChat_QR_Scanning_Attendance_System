@@ -90,6 +90,7 @@ def verify_qr_code(qr_code, student_openid):
     except Exception as e:
         return False, f"系统错误: {str(e)}"
 
+
 def get_attendance_status(event_id):
     """获取考勤状态统计"""
     event = AttendanceEvent.objects.get(event_id=event_id)

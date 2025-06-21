@@ -41,38 +41,40 @@ from .admin_views import (
 )
 
 from .wechat_notify import wechat_notify
+from . import wechat_views
 
 # 基础视图函数
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.utils import timezone
+from django.conf import settings
 from ..models import Attendance, Student, Teacher, AttendanceEvent, Enrollment
 from django.http import JsonResponse, HttpResponse
 import qrcode
 from io import BytesIO
 from attendance.services.wechat_service import WeChatService
+from django.views.decorators.csrf import csrf_exempt
+import requests
 
 def index(request):
-    """首页视图：登录后根据用户类型跳转到对应仪表盘"""
+    """首页视图，根据用户身份跳转到对应页面"""
     if not request.user.is_authenticated:
         return redirect('login')
-    # 超级管理员
-    if request.user.is_superuser:
+    
+    if request.user.is_staff:
         return redirect('admin_dashboard')
-    # 教师
-    if hasattr(request.user, 'teacher') or request.user.is_staff:
+    elif hasattr(request.user, 'teacher'):
         return redirect('teacher_dashboard')
-    # 学生（使用正确的关联关系判断）
-    if hasattr(request.user, 'student'):
+    elif hasattr(request.user, 'student'):
         return redirect('student_dashboard')
-    # 兜底：强制登出并提示
-    logout(request)
-    messages.error(request, '用户身份异常，请重新登录。')
-    return redirect('login')
+    else:
+        logout(request)
+        messages.error(request, '用户身份异常，请联系管理员。')
+        return redirect('login')
 
 def login_view(request):
-    """登录视图"""
+    """用户登录"""
     if request.user.is_authenticated:
         return redirect('index')
         
@@ -86,12 +88,11 @@ def login_view(request):
             return redirect('index')
         else:
             messages.error(request, '用户名或密码错误')
-    # 传递二维码图片URL
-    context = {'qr_code_url': '/login/qr/'}
-    return render(request, 'login.html', context)
+    
+    return render(request, 'login.html')
 
 def logout_view(request):
-    """退出登录视图"""
+    """用户登出"""
     logout(request)
     messages.success(request, '已成功退出登录')
     return redirect('login')
@@ -125,7 +126,7 @@ def scan_qr_code(request):
     return JsonResponse(result)
 
 def check_attendance(request):
-    from django.http import JsonResponse
+    """考勤检查API"""
     return JsonResponse({'success': True, 'message': '考勤检查API-占位'})
 
 def attendance(request):
@@ -150,17 +151,18 @@ def qr_code_view(request):
     return HttpResponse(image_stream, content_type='image/png')
 
 def scan_qr_page(request):
-    """扫码签到接口，支持微信授权code换openid"""
-    import requests
-    from django.conf import settings
+    """扫码签到页面"""
     event_id = request.GET.get('event_id')
     openid = request.GET.get('openid')
     code = request.GET.get('code')
-    context = {}
-    context['course_code'] = ''
-    context['course_name'] = ''
-    context['student_name'] = ''
-    context['student_id'] = ''
+    
+    context = {
+        'course_code': '',
+        'course_name': '',
+        'student_name': '',
+        'student_id': ''
+    }
+    
     # 如果没有openid但有code，先换openid
     if not openid and code:
         appid = settings.WECHAT_APPID
@@ -170,58 +172,20 @@ def scan_qr_page(request):
         data = resp.json()
         openid = data.get('openid')
         if openid:
-            # 换到openid后重定向到自身
             import urllib.parse
             params = {'event_id': event_id, 'openid': openid}
             redirect_url = f"/scan-qr-page/?{urllib.parse.urlencode(params)}"
-            from django.shortcuts import redirect
             return redirect(redirect_url)
         else:
             context['result'] = 'fail'
             context['message'] = '微信授权失败，无法获取openid。'
             return render(request, 'student/scan_result.html', context)
-    # 原有逻辑
+            
+    # 参数验证
     if not event_id or not openid:
         context['result'] = 'fail'
         context['message'] = '缺少参数，无法签到。'
         return render(request, 'student/scan_result.html', context)
-    try:
-        event = AttendanceEvent.objects.get(event_id=event_id)
-        context['course_code'] = event.course.course_id if hasattr(event.course, 'course_id') else ''
-        context['course_name'] = event.course.course_name if hasattr(event.course, 'course_name') else ''
-    except AttendanceEvent.DoesNotExist:
-        context['result'] = 'fail'
-        context['message'] = '考勤事件不存在。'
-        return render(request, 'student/scan_result.html', context)
-    try:
-        student = Student.objects.get(openid=openid)
-        context['student_name'] = student.stu_name if hasattr(student, 'stu_name') else ''
-        context['student_id'] = student.stu_id if hasattr(student, 'stu_id') else ''
-    except Student.DoesNotExist:
-        context['result'] = 'fail'
-        context['message'] = '未找到学生信息。'
-        return render(request, 'student/scan_result.html', context)
-    try:
-        enrollment = Enrollment.objects.get(student=student, course=event.course)
-    except Enrollment.DoesNotExist:
-        context['result'] = 'fail'
-        context['message'] = '未选修该课程，无法签到。'
-        return render(request, 'student/scan_result.html', context)
-    now = timezone.now()
-    if now < event.scan_start_time or now > event.scan_end_time:
-        context['result'] = 'fail'
-        context['message'] = '不在考勤时间范围内，无法签到。'
-        return render(request, 'student/scan_result.html', context)
-    if Attendance.objects.filter(enrollment=enrollment, event=event).exists():
-        context['result'] = 'repeat'
-        context['message'] = '您已签到，无需重复操作。'
-    else:
-        Attendance.objects.create(
-            enrollment=enrollment,
-            event=event,
-            scan_time=now,
-            status=1
-        )
-        context['result'] = 'success'
-        context['message'] = '签到成功！'
+        
+    # TODO: 处理扫码签到逻辑
     return render(request, 'student/scan_result.html', context) 

@@ -31,9 +31,7 @@
                                     <th rowspan="2" class="align-middle">学号</th>
                                     <th rowspan="2" class="align-middle">姓名</th>
                                     <th rowspan="2" class="align-middle">专业</th>
-                                    <th rowspan="2" class="align-middle">院系</th>
                                     <th colspan="{{ events|length }}" class="text-center">考勤记录</th>
-                                    <th rowspan="2" class="align-middle">出勤率<br><small class='text-muted' style='font-weight:normal'>(注：不含6月16日)</small></th>
                                 </tr>
                                 <tr>
                                     {% for event in events %}
@@ -49,7 +47,6 @@
                                     <td>{{ student_data.student.stu_id }}</td>
                                     <td>{{ student_data.student.stu_name }}</td>
                                     <td>{{ student_data.student.major.major_name }}</td>
-                                    <td>{{ student_data.student.major.department.dept_name }}</td>
                                     {% for record in student_data.attendance_list %}
                                     {% if record.event_date|date:"Y-m-d" <= "2025-06-16" %}
                                     <td class="text-center">
@@ -63,10 +60,6 @@
                                     </td>
                                     {% endif %}
                                     {% endfor %}
-                                    <td class="text-center">
-                                        {{ student_data.attendance_rate }}%<br>
-                                        <small class="text-muted" style="font-weight:normal">(不含6月16日)</small>
-                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>

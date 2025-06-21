@@ -38,6 +38,7 @@ LEAVE_STATUS_CHOICES = [
     (LEAVE_REJECTED, '已拒绝'),
 ]
 
+
 class Department(models.Model):
     """院系信息表"""
     dept_id = models.AutoField(primary_key=True, verbose_name='院系ID')
@@ -50,6 +51,7 @@ class Department(models.Model):
 
     def __str__(self):
         return self.dept_name
+
 
 class Major(models.Model):
     """专业信息表"""
@@ -64,6 +66,7 @@ class Major(models.Model):
 
     def __str__(self):
         return self.major_name
+
 
 class Student(models.Model):
     """学生信息表"""
@@ -82,6 +85,7 @@ class Student(models.Model):
     def __str__(self):
         return f"{self.stu_name}({self.stu_id})"
 
+
 class Course(models.Model):
     """课程信息表"""
     course_id = models.CharField(max_length=20, primary_key=True, verbose_name='课程ID')
@@ -95,6 +99,7 @@ class Course(models.Model):
 
     def __str__(self):
         return f"{self.course_name}({self.course_id})"
+
 
 class Teacher(models.Model):
     """教师信息表"""
@@ -111,6 +116,7 @@ class Teacher(models.Model):
     def __str__(self):
         return f"{self.teacher_name}({self.teacher_id})"
 
+
 class Enrollment(models.Model):
     """选课记录表"""
     enroll_id = models.AutoField(primary_key=True, verbose_name='选课记录ID')
@@ -125,6 +131,7 @@ class Enrollment(models.Model):
 
     def __str__(self):
         return f"{self.student.stu_name}-{self.course.course_name}"
+
 
 class AttendanceEvent(models.Model):
     """考勤事件表"""
@@ -145,6 +152,7 @@ class AttendanceEvent(models.Model):
     def __str__(self):
         return f"{self.course.course_name}-{self.event_date}"
 
+
 class Attendance(models.Model):
     """学生考勤记录表"""
     attend_id = models.AutoField(primary_key=True, verbose_name='考勤记录ID')
@@ -162,6 +170,7 @@ class Attendance(models.Model):
 
     def __str__(self):
         return f"{self.enrollment.student.stu_name}-{self.event.course.course_name}"
+
 
 class LeaveRequest(models.Model):
     """请假申请表"""
@@ -184,6 +193,7 @@ class LeaveRequest(models.Model):
     def __str__(self):
         return f"{self.enrollment.student.stu_name}-{self.event.course.course_name}"
 
+
 class TeachingAssignment(models.Model):
     """教学安排表"""
     assignment_id = models.AutoField(primary_key=True, verbose_name='教学安排ID')
@@ -198,6 +208,7 @@ class TeachingAssignment(models.Model):
 
     def __str__(self):
         return f"{self.teacher.teacher_name}-{self.course.course_name}"
+
 
 class ClassSchedule(models.Model):
     """课程时间安排表"""
@@ -216,7 +227,58 @@ class ClassSchedule(models.Model):
         db_table = 'ClassSchedule'
 
     def __str__(self):
-        return f"{self.assignment.course.course_name}-{self.class_date}-{self.get_weekday_display()}"
+        return f"{self.assignment.course.course_name}-{self.class_date} 第{self.start_period}-{self.end_period}节"
+
+    def get_start_time(self):
+        """根据节次获取开始时间"""
+        # 14节课的时间表（格式：HHMM）
+        period_times = {
+            1: '0800', 2: '0855', 3: '0955', 4: '1045', 5: '1145',
+            6: '1330', 7: '1425', 8: '1525', 9: '1620', 10: '1715',
+            11: '1830', 12: '1925', 13: '2020', 14: '2115'
+        }
+        
+        if self.start_period not in period_times:
+            raise ValueError(f"无效的开始节次: {self.start_period}")
+        
+        time_str = period_times[self.start_period]
+        hour = int(time_str[:2])
+        minute = int(time_str[2:])
+        
+        from datetime import time
+        return time(hour, minute)
+
+    def get_end_time(self):
+        """根据节次获取结束时间"""
+        # 14节课的结束时间表（格式：HHMM）
+        period_end_times = {
+            1: '0845', 2: '0940', 3: '1035', 4: '1135', 5: '1230',
+            6: '1415', 7: '1510', 8: '1610', 9: '1705', 10: '1800',
+            11: '1915', 12: '2010', 13: '2105', 14: '2200'
+        }
+        
+        if self.end_period not in period_end_times:
+            raise ValueError(f"无效的结束节次: {self.end_period}")
+        
+        time_str = period_end_times[self.end_period]
+        hour = int(time_str[:2])
+        minute = int(time_str[2:])
+        
+        from datetime import time
+        return time(hour, minute)
+
+    def get_start_datetime(self):
+        """获取完整的开始日期时间"""
+        from datetime import datetime
+        start_time = self.get_start_time()
+        return datetime.combine(self.class_date, start_time)
+
+    def get_end_datetime(self):
+        """获取完整的结束日期时间"""
+        from datetime import datetime
+        end_time = self.get_end_time()
+        return datetime.combine(self.class_date, end_time)
+
 
 class SystemSettings(models.Model):
     """系统设置模型"""
@@ -236,6 +298,7 @@ class SystemSettings(models.Model):
     def __str__(self):
         return self.system_name
 
+
 class PermissionSettings(models.Model):
     """权限设置模型"""
     student_view_attendance = models.BooleanField('学生查看考勤记录', default=True)
@@ -252,12 +315,13 @@ class PermissionSettings(models.Model):
     def __str__(self):
         return '权限设置'
 
+
 class SystemLog(models.Model):
     """系统日志模型"""
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='用户')
     action = models.CharField('操作', max_length=200)
     ip_address = models.GenericIPAddressField('IP地址')
-    status = models.BooleanField('状态', default=True)  # True表示成功，False表示失败
+    status = models.BooleanField('状态：True-成功，False-失败', default=True)
     timestamp = models.DateTimeField('时间', auto_now_add=True)
 
     class Meta:

@@ -34,9 +34,9 @@
                                     {% for event in available_events %}
                                     <option value="{{ event.event_id }}" 
                                             data-course="{{ event.course.course_name }}"
-                                            data-date="{{ event.event_date }}"
+                                            data-date="{{ event.event_date|date:'Y年m月d日' }}"
                                             data-time="{{ event.scan_start_time }} - {{ event.scan_end_time }}">
-                                        {{ event.course.course_name }} - {{ event.event_date }} ({{ event.scan_start_time }}-{{ event.scan_end_time }})
+                                        {{ event.course.course_name }} - {{ event.event_date|date:"Y年m月d日" }} ({{ event.scan_start_time }}-{{ event.scan_end_time }})
                                     </option>
                                     {% endfor %}
                                 </select>

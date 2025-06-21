@@ -1,103 +1,253 @@
 {% extends 'base.html' %}
+{% load tz %}
 
-{% block title %}我的课程 - 微信扫码考勤系统{% endblock %}
+{% block title %}考勤事件 - 微信扫码考勤系统{% endblock %}
+
+{% block extra_css %}
+<style>
+.event-past {
+    background: #f8f9fa !important;
+    color: #888 !important;
+}
+
+.event-current {
+    background: #fffbe6 !important;
+    color: #222 !important;
+    font-weight: bold !important;
+    border: 2px solid #007bff !important;
+}
+
+.event-future {
+    background: #fff !important;
+    color: #222 !important;
+    opacity: 0.6;
+}
+
+.event-card {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.event-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.event-future .btn {
+    pointer-events: none;
+    opacity: 0.5;
+}
+
+.event-future:hover {
+    transform: none;
+    box-shadow: none;
+    cursor: not-allowed;
+}
+
+.filter-section {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.filter-section .form-control,
+.filter-section .form-select {
+    border-radius: 6px;
+}
+
+.filter-section .btn {
+    border-radius: 6px;
+}
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="row">
     <div class="col-md-12">
-        {% if courses_data %}
-            {% for course_data in courses_data %}
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5 class="mb-0">
-                            <i class="fas fa-book me-2"></i>{{ course_data.course.course_name }}
-                        </h5>
-                        <small class="text-muted">课程编号：{{ course_data.course.course_id }} | 院系：{{ course_data.course.dept.dept_name }}</small>
+        <!-- 筛选功能 -->
+        <div class="filter-section">
+            <h6 class="mb-3">
+                <i class="fas fa-filter me-2"></i>筛选条件
+            </h6>
+            <form method="get" id="filterForm">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="courseFilter" class="form-label">课程筛选</label>
+                        <select class="form-select" id="courseFilter" name="course">
+                            <option value="">全部课程</option>
+                            {% for course in courses %}
+                                <option value="{{ course.course_id }}" {% if selected_course == course.course_id %}selected{% endif %}>
+                                    {{ course.course_name }}
+                                </option>
+                            {% endfor %}
+                        </select>
                     </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <!-- 选课学生列表 -->
-                            <div class="col-md-6">
-                                <h6 class="mb-3">
-                                    <i class="fas fa-user-graduate me-2"></i>选课学生列表
-                                </h6>
-                                <div class="table-responsive">
-                                    <table class="table table-sm">
-                                        <thead>
-                                            <tr>
-                                                <th>学号</th>
-                                                <th>姓名</th>
-                                                <th>专业</th>
-                                                <th>院系</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% for enrollment in course_data.enrollments %}
-                                            <tr>
-                                                <td>{{ enrollment.student.stu_id }}</td>
-                                                <td>{{ enrollment.student.stu_name }}</td>
-                                                <td>{{ enrollment.student.major.major_name }}</td>
-                                                <td>{{ enrollment.student.major.dept.dept_name }}</td>
-                                            </tr>
-                                            {% empty %}
-                                            <tr>
-                                                <td colspan="4" class="text-center py-2">
-                                                    <span class="text-muted">暂无学生选课</span>
-                                                </td>
-                                            </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                            
-                            <!-- 考勤时间列表 -->
-                            <div class="col-md-6">
-                                <h6 class="mb-3">
-                                    <i class="fas fa-calendar-alt me-2"></i>考勤时间列表
-                                </h6>
-                                <div class="table-responsive">
-                                    <table class="table table-sm">
-                                        <thead>
-                                            <tr>
-                                                <th>日期</th>
-                                                <th>星期</th>
-                                                <th>节次</th>
-                                                <th>地点</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% for schedule in course_data.schedules %}
-                                            <tr>
-                                                <td>{{ schedule.class_date|date:"m月d日" }}</td>
-                                                <td>{{ schedule.get_weekday_display }}</td>
-                                                <td>第{{ schedule.start_period }}-{{ schedule.end_period }}节</td>
-                                                <td>{{ schedule.location }}</td>
-                                            </tr>
-                                            {% empty %}
-                                            <tr>
-                                                <td colspan="4" class="text-center py-2">
-                                                    <span class="text-muted">暂无时间安排</span>
-                                                </td>
-                                            </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="dateFilter" class="form-label">日期筛选</label>
+                        <select class="form-select" id="dateFilter" name="date_filter">
+                            <option value="">全部日期</option>
+                            {% for date in available_dates %}
+                                <option value="{{ date|date:'Y-m-d' }}" {% if selected_date == date|date:'Y-m-d' %}selected{% endif %}>
+                                    {{ date|date:'Y年n月j日' }}
+                                </option>
+                            {% endfor %}
+                        </select>
                     </div>
                 </div>
-            {% endfor %}
-        {% else %}
-            <div class="card">
-                <div class="card-body text-center py-5">
-                    <i class="fas fa-book fa-4x text-muted mb-3"></i>
-                    <h5 class="text-muted">暂无课程</h5>
-                    <p class="text-muted">您当前没有分配到任何课程</p>
+                <div class="row">
+                    <div class="col-md-12">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="fas fa-search me-1"></i>筛选
+                        </button>
+                        <a href="{% url 'teacher_courses' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i>清除筛选
+                        </a>
+                        <span class="ms-3 text-muted">
+                            <i class="fas fa-info-circle me-1"></i>共找到 <span id="eventCount">{{ events|length }}</span> 个考勤事件
+                        </span>
+                    </div>
                 </div>
+            </form>
+        </div>
+
+        <!-- 考勤事件列表 -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-calendar-check me-2"></i>考勤事件列表
+                </h5>
+                <small class="text-muted">按时间先后顺序排列 | 未来事件不可访问</small>
             </div>
-        {% endif %}
+            <div class="card-body">
+                {% if events %}
+                    <div class="row" id="eventsContainer">
+                        {% for event in events %}
+                            <div class="col-lg-4 col-md-6 mb-3 event-item" 
+                                 data-course="{{ event.course.course_id }}" 
+                                 data-date="{{ event.event_date|date:'Y-m-d' }}">
+                                <div id="event-{{ event.event_id }}" 
+                                     class="card event-card {% if event.event_date < now.date %}event-past{% elif event.event_date == now.date %}event-current{% else %}event-future{% endif %}">
+                                    <div class="card-body text-center">
+                                        <div class="mb-2">
+                                            <h6 class="card-title mb-1">{{ event.course.course_name }}</h6>
+                                            <small class="text-muted">{{ event.course.course_id }}</small>
+                                        </div>
+                                        <div class="mb-3">
+                                            <div class="text-muted small">
+                                                <i class="fas fa-calendar me-1"></i>{{ event.event_date|date:'Y年n月j日' }}
+                                            </div>
+                                            <div class="text-muted small">
+                                                <i class="fas fa-clock me-1"></i>{{ event.scan_start_time|time:'H:i' }}-{{ event.scan_end_time|time:'H:i' }}
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- 状态标签 -->
+                                        {% if event.event_date == now.date %}
+                                            {% if event.scan_start_time|time:'H:i' > now.time|time:'H:i' %}
+                                                <span class="badge bg-light text-dark mb-2">未到考勤时间</span>
+                                            {% elif event.scan_start_time|time:'H:i' <= now.time|time:'H:i' and event.scan_end_time|time:'H:i' >= now.time|time:'H:i' %}
+                                                <a href="{% url 'view_attendance_results' event.event_id %}" class="badge bg-primary text-decoration-none mb-2">当前考勤</a>
+                                            {% else %}
+                                                <span class="badge bg-secondary mb-2">已结束</span>
+                                            {% endif %}
+                                        {% elif event.event_date < now.date %}
+                                            <span class="badge bg-secondary mb-2">已结束</span>
+                                        {% else %}
+                                            <span class="badge bg-light text-dark mb-2">未到考勤时间</span>
+                                        {% endif %}
+                                        
+                                        <!-- 操作按钮 -->
+                                        <div class="btn-group-vertical w-100" role="group">
+                                            {% if event.event_date <= now.date %}
+                                                <!-- 今天及之前的事件可以访问 -->
+                                                <a href="{% url 'view_attendance_results' event.event_id %}" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-eye me-1"></i>查看结果
+                                                </a>
+                                                <a href="{% url 'event_qr_code' event.event_id %}" class="btn btn-sm btn-outline-success">
+                                                    <i class="fas fa-qrcode me-1"></i>二维码
+                                                </a>
+                                                <a href="{% url 'event_detail' event.event_id %}" class="btn btn-sm btn-outline-info">
+                                                    <i class="fas fa-info-circle me-1"></i>详情
+                                                </a>
+                                            {% else %}
+                                                <!-- 未来事件禁用按钮 -->
+                                                <button class="btn btn-sm btn-outline-secondary" disabled title="考勤尚未开始">
+                                                    <i class="fas fa-eye me-1"></i>查看结果
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-secondary" disabled title="考勤尚未开始">
+                                                    <i class="fas fa-qrcode me-1"></i>二维码
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-secondary" disabled title="考勤尚未开始">
+                                                    <i class="fas fa-info-circle me-1"></i>详情
+                                                </button>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-calendar-times fa-4x text-muted mb-3"></i>
+                        <h5 class="text-muted">暂无考勤事件</h5>
+                        <p class="text-muted">您还没有创建任何考勤事件</p>
+                        <a href="{% url 'teacher_dashboard' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-plus me-1"></i>创建考勤事件
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // 实时筛选功能
+    $('#courseFilter, #dateFilter').change(function() {
+        filterEvents();
+    });
+    
+    function filterEvents() {
+        var courseFilter = $('#courseFilter').val();
+        var dateFilter = $('#dateFilter').val();
+        
+        var visibleCount = 0;
+        
+        $('.event-item').each(function() {
+            var item = $(this);
+            var course = item.data('course');
+            var date = item.data('date');
+            
+            var showItem = true;
+            
+            // 课程筛选
+            if (courseFilter && course !== courseFilter) {
+                showItem = false;
+            }
+            
+            // 日期筛选
+            if (dateFilter && date !== dateFilter) {
+                showItem = false;
+            }
+            
+            if (showItem) {
+                item.show();
+                visibleCount++;
+            } else {
+                item.hide();
+            }
+        });
+        
+        $('#eventCount').text(visibleCount);
+    }
+    
+    // 初始化筛选
+    filterEvents();
+});
+</script>
 {% endblock %} 

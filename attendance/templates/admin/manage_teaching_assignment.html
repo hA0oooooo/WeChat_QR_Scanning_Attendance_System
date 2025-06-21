@@ -159,51 +159,27 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">上课日期 <span class="text-danger">*</span></label>
-                        <input type="date" class="form-control" name="class_date" id="class_date_input" required>
+                        <input type="date" class="form-control" name="class_date" id="class_date_input" required onchange="calculateWeekday('class_date_input', 'weekday_display', 'weekday_hidden')">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">星期 <span class="text-danger">*</span></label>
-                        <select class="form-select" name="weekday" id="weekday_select" required>
-                            <option value="">请选择星期</option>
-                            <option value="1">星期一</option>
-                            <option value="2">星期二</option>
-                            <option value="3">星期三</option>
-                            <option value="4">星期四</option>
-                            <option value="5">星期五</option>
-                            <option value="6">星期六</option>
-                            <option value="7">星期日</option>
-                        </select>
+                        <input type="text" class="form-control" id="weekday_display" readonly placeholder="选择日期后自动显示">
+                        <input type="hidden" name="weekday" id="weekday_hidden">
                     </div>
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">开始节次 <span class="text-danger">*</span></label>
-                                <select class="form-select" name="start_period" id="start_period_select" required>
+                                <select class="form-select" name="start_period" id="start_period_select" required onchange="updateEndPeriodOptions('start_period_select', 'end_period_select')">
                                     <option value="">请选择</option>
-                                    <option value="1">第1节</option>
-                                    <option value="2">第2节</option>
-                                    <option value="3">第3节</option>
-                                    <option value="4">第4节</option>
-                                    <option value="5">第5节</option>
-                                    <option value="6">第6节</option>
-                                    <option value="7">第7节</option>
-                                    <option value="8">第8节</option>
                                 </select>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">结束节次 <span class="text-danger">*</span></label>
-                                <select class="form-select" name="end_period" id="end_period_select" required>
+                                <select class="form-select" name="end_period" id="end_period_select" required onchange="updateStartPeriodOptions('end_period_select', 'start_period_select')">
                                     <option value="">请选择</option>
-                                    <option value="1">第1节</option>
-                                    <option value="2">第2节</option>
-                                    <option value="3">第3节</option>
-                                    <option value="4">第4节</option>
-                                    <option value="5">第5节</option>
-                                    <option value="6">第6节</option>
-                                    <option value="7">第7节</option>
-                                    <option value="8">第8节</option>
                                 </select>
                             </div>
                         </div>
@@ -247,51 +223,27 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">上课日期 <span class="text-danger">*</span></label>
-                        <input type="date" class="form-control" name="class_date" id="edit_class_date_input" required>
+                        <input type="date" class="form-control" name="class_date" id="edit_class_date_input" required onchange="calculateWeekday('edit_class_date_input', 'edit_weekday_display', 'edit_weekday_hidden')">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">星期 <span class="text-danger">*</span></label>
-                        <select class="form-select" name="weekday" id="edit_weekday_select" required>
-                            <option value="">请选择星期</option>
-                            <option value="1">星期一</option>
-                            <option value="2">星期二</option>
-                            <option value="3">星期三</option>
-                            <option value="4">星期四</option>
-                            <option value="5">星期五</option>
-                            <option value="6">星期六</option>
-                            <option value="7">星期日</option>
-                        </select>
+                        <input type="text" class="form-control" id="edit_weekday_display" readonly placeholder="选择日期后自动显示">
+                        <input type="hidden" name="weekday" id="edit_weekday_hidden">
                     </div>
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">开始节次 <span class="text-danger">*</span></label>
-                                <select class="form-select" name="start_period" id="edit_start_period_select" required>
+                                <select class="form-select" name="start_period" id="edit_start_period_select" required onchange="updateEndPeriodOptions('edit_start_period_select', 'edit_end_period_select')">
                                     <option value="">请选择</option>
-                                    <option value="1">第1节</option>
-                                    <option value="2">第2节</option>
-                                    <option value="3">第3节</option>
-                                    <option value="4">第4节</option>
-                                    <option value="5">第5节</option>
-                                    <option value="6">第6节</option>
-                                    <option value="7">第7节</option>
-                                    <option value="8">第8节</option>
                                 </select>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">结束节次 <span class="text-danger">*</span></label>
-                                <select class="form-select" name="end_period" id="edit_end_period_select" required>
+                                <select class="form-select" name="end_period" id="edit_end_period_select" required onchange="updateStartPeriodOptions('edit_end_period_select', 'edit_start_period_select')">
                                     <option value="">请选择</option>
-                                    <option value="1">第1节</option>
-                                    <option value="2">第2节</option>
-                                    <option value="3">第3节</option>
-                                    <option value="4">第4节</option>
-                                    <option value="5">第5节</option>
-                                    <option value="6">第6节</option>
-                                    <option value="7">第7节</option>
-                                    <option value="8">第8节</option>
                                 </select>
                             </div>
                         </div>
@@ -315,9 +267,140 @@
 
 {% block extra_js %}
 <script>
+// 页面加载时初始化节次选项
+document.addEventListener('DOMContentLoaded', function() {
+    initializePeriodOptions();
+});
+
+// 计算星期数的函数
+function calculateWeekday(dateInputId, displayId, hiddenId) {
+    const dateInput = document.getElementById(dateInputId);
+    const displayField = document.getElementById(displayId);
+    const hiddenField = document.getElementById(hiddenId);
+    
+    if (dateInput.value) {
+        const date = new Date(dateInput.value);
+        const weekday = date.getDay(); // 0是星期日，1是星期一，以此类推
+        
+        // 转换为1-7的格式（1是星期一，7是星期日）
+        const weekdayNumber = weekday === 0 ? 7 : weekday;
+        
+        // 星期名称数组
+        const weekdayNames = ['', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
+        
+        // 设置显示值和隐藏值
+        displayField.value = weekdayNames[weekdayNumber];
+        hiddenField.value = weekdayNumber;
+    } else {
+        displayField.value = '';
+        hiddenField.value = '';
+    }
+}
+
+function initializePeriodOptions() {
+    // 初始化开始节次选项（1-13）
+    const startPeriodSelects = ['start_period_select', 'edit_start_period_select'];
+    startPeriodSelects.forEach(function(selectId) {
+        const select = document.getElementById(selectId);
+        if (select) {
+            select.innerHTML = '<option value="">请选择</option>';
+            for (let i = 1; i <= 13; i++) {
+                select.innerHTML += '<option value="' + i + '">第' + i + '节</option>';
+            }
+        }
+    });
+    
+    // 初始化结束节次选项（2-14）
+    const endPeriodSelects = ['end_period_select', 'edit_end_period_select'];
+    endPeriodSelects.forEach(function(selectId) {
+        const select = document.getElementById(selectId);
+        if (select) {
+            select.innerHTML = '<option value="">请选择</option>';
+            for (let i = 2; i <= 14; i++) {
+                select.innerHTML += '<option value="' + i + '">第' + i + '节</option>';
+            }
+        }
+    });
+}
+
+function updateEndPeriodOptions(startId, endId) {
+    var start = parseInt(document.getElementById(startId).value);
+    var endSelect = document.getElementById(endId);
+    var currentEnd = parseInt(endSelect.value);
+    
+    // 保存当前选择
+    var shouldKeepCurrentEnd = false;
+    if (!isNaN(currentEnd) && !isNaN(start)) {
+        shouldKeepCurrentEnd = (currentEnd > start);
+    }
+    
+    endSelect.innerHTML = '<option value="">请选择</option>';
+    if (!isNaN(start)) {
+        for (var i = start + 1; i <= 14; i++) {
+            var option = document.createElement('option');
+            option.value = i;
+            option.textContent = '第' + i + '节';
+            if (shouldKeepCurrentEnd && i === currentEnd) {
+                option.selected = true;
+            }
+            endSelect.appendChild(option);
+        }
+    } else {
+        for (var i = 2; i <= 14; i++) {
+            var option = document.createElement('option');
+            option.value = i;
+            option.textContent = '第' + i + '节';
+            if (!isNaN(currentEnd) && i === currentEnd) {
+                option.selected = true;
+            }
+            endSelect.appendChild(option);
+        }
+    }
+}
+
+function updateStartPeriodOptions(endId, startId) {
+    var end = parseInt(document.getElementById(endId).value);
+    var startSelect = document.getElementById(startId);
+    var currentStart = parseInt(startSelect.value);
+    
+    // 保存当前选择
+    var shouldKeepCurrentStart = false;
+    if (!isNaN(currentStart) && !isNaN(end)) {
+        shouldKeepCurrentStart = (currentStart < end);
+    }
+    
+    startSelect.innerHTML = '<option value="">请选择</option>';
+    if (!isNaN(end)) {
+        for (var i = 1; i < end; i++) {
+            var option = document.createElement('option');
+            option.value = i;
+            option.textContent = '第' + i + '节';
+            if (shouldKeepCurrentStart && i === currentStart) {
+                option.selected = true;
+            }
+            startSelect.appendChild(option);
+        }
+    } else {
+        for (var i = 1; i <= 13; i++) {
+            var option = document.createElement('option');
+            option.value = i;
+            option.textContent = '第' + i + '节';
+            if (!isNaN(currentStart) && i === currentStart) {
+                option.selected = true;
+            }
+            startSelect.appendChild(option);
+        }
+    }
+}
+
 function addClassSchedule() {
     // 重置表单
     document.getElementById('addClassScheduleForm').reset();
+    // 重新初始化节次选项
+    initializePeriodOptions();
+    // 清空星期显示
+    document.getElementById('weekday_display').value = '';
+    document.getElementById('weekday_hidden').value = '';
     new bootstrap.Modal(document.getElementById('addClassScheduleModal')).show();
 }
 
@@ -371,9 +454,17 @@ function editClassSchedule(scheduleId, teacherId, classDate, weekday, startPerio
     document.getElementById('edit_schedule_id').value = scheduleId;
     document.getElementById('edit_teacher_select').value = teacherId;
     document.getElementById('edit_class_date_input').value = classDate;
-    document.getElementById('edit_weekday_select').value = weekday;
+    
+    // 设置星期显示
+    const weekdayNames = ['', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
+    document.getElementById('edit_weekday_display').value = weekdayNames[parseInt(weekday)];
+    document.getElementById('edit_weekday_hidden').value = weekday;
+    
+    // 设置节次选择（新的逻辑会自动保持有效选择）
     document.getElementById('edit_start_period_select').value = startPeriod;
+    updateEndPeriodOptions('edit_start_period_select', 'edit_end_period_select');
     document.getElementById('edit_end_period_select').value = endPeriod;
+    
     document.getElementById('edit_location_input').value = location;
     
     new bootstrap.Modal(document.getElementById('editClassScheduleModal')).show();

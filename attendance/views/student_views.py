@@ -18,7 +18,7 @@ def student_dashboard(request):
     """学生仪表板"""
     student = request.user.student
     
-    # 模拟当前时间为2025年6月18日11:00（课程进行中）
+    # 模拟当前时间
     now = datetime(2025, 6, 18, 11, 0)
     today = now.date()
     
@@ -44,10 +44,10 @@ def student_dashboard(request):
         enrollment__student=student
     ).select_related('event__course').order_by('-event__event_date')[:5]
     
-    # 计算统计数据 - 只计算已开始的课程（排除未开始状态）
+    # 计算统计数据
     all_attendance = Attendance.objects.filter(
         enrollment__student=student
-    ).exclude(status=STATUS_NOT_STARTED)  # 排除未开始的课程
+    ).exclude(status=STATUS_NOT_STARTED)
     
     total_events = all_attendance.count()
     attended_count = all_attendance.filter(status=STATUS_PRESENT).count()
@@ -102,7 +102,7 @@ def student_courses(request):
         
         # 组合课程时间信息
         if schedules.exists():
-            schedule = schedules.first()  # 取第一个时间安排作为主要显示
+            schedule = schedules.first()
             
             # 格式化时间信息
             weekday_map = {1: '一', 2: '二', 3: '三', 4: '四', 5: '五', 6: '六', 7: '日'}
@@ -113,12 +113,7 @@ def student_courses(request):
             else:
                 period_str = f'第{schedule.start_period}-{schedule.end_period}节'
             
-            # 如果有多个时间安排，显示所有日期
-            if schedules.count() > 1:
-                dates = ', '.join([s.class_date.strftime('%m月%d日') for s in schedules])
-                class_time = f'{dates} 星期{weekday_name} {period_str}'
-            else:
-                class_time = f'{schedule.class_date.strftime("%m月%d日")} 星期{weekday_name} {period_str}'
+            class_time = f'星期{weekday_name} {period_str}（具体以老师发布的课程安排为准）'
             
             course_info.append({
                 'enrollment': enrollment,
@@ -164,7 +159,7 @@ def course_detail(request, course_id):
         enrollment=enrollment
     ).select_related('event')
     
-    # 创建考勤记录字典，方便模板查询
+    # 创建考勤记录字典
     attendance_dict = {record.event.event_id: record for record in attendance_records}
     
     # 为每个事件添加考勤状态
@@ -194,7 +189,7 @@ def student_attendance(request):
         enrollment__student=student
     ).select_related('event__course', 'enrollment__course').order_by('-event__event_date', '-event__scan_start_time')
     
-    # 按课程分组统计 - 只统计已开始的课程
+    # 按课程分组统计
     course_stats = {}
     for record in attendance_records:
         # 排除未开始的课程

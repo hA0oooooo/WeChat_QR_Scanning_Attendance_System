@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load tz %}
 
 {% block title %}教师仪表盘 - 微信扫码考勤系统{% endblock %}
 
@@ -19,6 +20,30 @@
 .event-future {
     background: #fff !important;
     color: #222 !important;
+}
+
+.course-card {
+    min-width: 300px;
+    max-width: 300px;
+    margin-right: 1rem;
+}
+
+.course-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #dee2e6 #f8f9fa;
+}
+
+.course-scrollbar::-webkit-scrollbar {
+    height: 6px;
+}
+
+.course-scrollbar::-webkit-scrollbar-track {
+    background: #f8f9fa;
+}
+
+.course-scrollbar::-webkit-scrollbar-thumb {
+    background-color: #dee2e6;
+    border-radius: 3px;
 }
 </style>
 {% endblock %}
@@ -81,12 +106,16 @@
                                 <div style="font-size: 0.95em;" class="mb-1 text-muted">
                                     {{ event.event_date|date:'Y年n月j日' }}<br>{{ event.scan_start_time }}-{{ event.scan_end_time }}
                                 </div>
-                                {% if event.event_date < now.date %}
-                                    <a href="{% url 'view_attendance_results' event.event_id %}" class="badge bg-secondary text-decoration-none">已结束</a>
-                                {% elif event.event_date == now.date and event.scan_start_time <= now.time and event.scan_end_time >= now.time %}
-                                    <a href="{% url 'view_attendance_results' event.event_id %}" class="badge bg-primary text-decoration-none">当前考勤</a>
-                                {% elif event.event_date == now.date and event.scan_start_time > now.time %}
-                                    <span class="badge bg-light text-dark">未到考勤时间</span>
+                                {% if event.event_date == now.date %}
+                                    {% if event.scan_start_time|time:'H:i' > now.time|time:'H:i' %}
+                                        <span class="badge bg-light text-dark">未到考勤时间</span>
+                                    {% elif event.scan_start_time|time:'H:i' <= now.time|time:'H:i' and event.scan_end_time|time:'H:i' >= now.time|time:'H:i' %}
+                                        <a href="{% url 'view_attendance_results' event.event_id %}" class="badge bg-primary text-decoration-none">当前考勤</a>
+                                    {% else %}
+                                        <span class="badge bg-secondary">已结束</span>
+                                    {% endif %}
+                                {% elif event.event_date < now.date %}
+                                    <span class="badge bg-secondary">已结束</span>
                                 {% else %}
                                     <span class="badge bg-light text-dark">未到考勤时间</span>
                                 {% endif %}
@@ -112,44 +141,150 @@
         </div>
     </div>
     
-    <!-- 最近请假申请 -->
+    <!-- 请假申请和课程考勤情况 -->
     <div class="col-md-12">
-        <div class="card">
-            <div class="card-header">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h5>最近请假申请</h5>
-                    <a href="{% url 'leave_request_list' %}" class="btn btn-link">查看全部</a>
+        <div class="row">
+            <!-- 最近请假申请 -->
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-calendar-times me-2"></i>最近请假申请
+                            </h5>
+                            <a href="{% url 'leave_request_list' %}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-eye me-1"></i>查看详情
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        {% if recent_leave_requests %}
+                            <div class="list-group list-group-flush">
+                                {% for request in recent_leave_requests %}
+                                    <div class="list-group-item">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <h6 class="mb-1">{{ request.enrollment.student.student_name }}</h6>
+                                                <p class="mb-1 text-muted small">{{ request.event.course.course_name }}</p>
+                                                <p class="mb-1 text-muted small">
+                                                    <i class="fas fa-calendar-day me-1"></i>{{ request.event.event_date|date:"Y-m-d" }}
+                                                </p>
+                                                <p class="mb-1 small text-truncate" style="max-width: 200px;">
+                                                    <i class="fas fa-comment-alt me-1"></i>{{ request.reason }}
+                                                </p>
+                                            </div>
+                                            <div class="ms-2">
+                                                {% if request.approval_status == 1 %}
+                                                    <span class="badge bg-warning">待审批</span>
+                                                {% elif request.approval_status == 2 %}
+                                                    <span class="badge bg-success">已批准</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">已拒绝</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        {% if request.approval_status == 1 %}
+                                            <div class="mt-2">
+                                                <a href="{% url 'approve_leave_request' request.leave_request_id %}" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-check me-1"></i>审批
+                                                </a>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-center py-3">
+                                <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                                <p class="text-muted mb-0">暂无请假申请</p>
+                            </div>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
-            <div class="card-body">
-                {% if recent_leave_requests %}
-                    <ul class="list-group">
-                        {% for req in recent_leave_requests %}
-                            {% if req.approval_status == 1 %}
-                            <li class="list-group-item">
-                                <a href="{% url 'approve_leave_request' req.leave_request_id %}" class="text-decoration-none">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div>
-                                            <h6 class="mb-1">{{ req.enrollment.student.stu_name }}</h6>
-                                            <small class="text-muted">{{ req.event.course.course_name }} - {{ req.event.event_date }}</small>
+
+            <!-- 课程考勤情况 -->
+            <div class="col-md-8">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-chart-bar me-2"></i>课程考勤情况
+                            </h5>
+                            <a href="{% url 'teacher_courses' %}" class="btn btn-primary">
+                                <i class="fas fa-eye me-1"></i>查看详情
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        {% if courses %}
+                            <div class="course-scrollbar d-flex flex-row overflow-auto pb-2">
+                                {% for course in courses %}
+                                    <div class="card course-card">
+                                        <div class="card-header">
+                                            <h6 class="mb-0">{{ course.course_name }}</h6>
+                                            <small class="text-muted">课程编号：{{ course.course_id }}</small>
                                         </div>
-                                        <span class="badge bg-warning text-dark">待审批</span>
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                                <span class="badge bg-primary">{{ course.enrollment_set.count }} 名学生</span>
+                                                <a href="{% url 'course_detail' course.course_id %}" class="btn btn-sm btn-outline-primary">
+                                                    查看详情
+                                                </a>
+                                            </div>
+                                            <div class="table-responsive">
+                                                <table class="table table-sm">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>日期</th>
+                                                            <th>时间</th>
+                                                            <th>状态</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {% for event in course.attendanceevent_set.all|dictsort:"event_date"|dictsort:"scan_start_time"|slice:":3" %}
+                                                            <tr>
+                                                                <td>{{ event.event_date|date:"m-d" }}</td>
+                                                                <td>{{ event.scan_start_time }}-{{ event.scan_end_time }}</td>
+                                                                <td>
+                                                                    {% if event.event_date.year == 2025 and event.event_date.month == 6 %}
+                                                                        {% if event.event_date.day < 18 %}
+                                                                            <span class="badge bg-success">有效</span>
+                                                                        {% elif event.event_date.day == 18 %}
+                                                                            <span class="badge bg-primary">进行中</span>
+                                                                        {% else %}
+                                                                            <span class="badge bg-secondary">未开始</span>
+                                                                        {% endif %}
+                                                                    {% else %}
+                                                                        <span class="badge bg-secondary">未开始</span>
+                                                                    {% endif %}
+                                                                </td>
+                                                            </tr>
+                                                        {% empty %}
+                                                            <tr>
+                                                                <td colspan="3" class="text-center py-2">
+                                                                    <span class="text-muted">暂无考勤事件</span>
+                                                                </td>
+                                                            </tr>
+                                                        {% endfor %}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="mt-1 text-muted">原因：{{ req.reason }}</div>
-                                </a>
-                            </li>
-                            {% endif %}
-                        {% empty %}
-                            <li class="list-group-item text-muted">暂无待审批申请</li>
-                        {% endfor %}
-                    </ul>
-                {% else %}
-                    <p class="text-muted mb-0">暂无请假申请</p>
-                {% endif %}
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-center py-5">
+                                <i class="fas fa-book fa-4x text-muted mb-3"></i>
+                                <h5 class="text-muted">暂无课程</h5>
+                                <p class="text-muted">您当前没有分配到任何课程</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-
-
 </div>
 {% endblock %} 

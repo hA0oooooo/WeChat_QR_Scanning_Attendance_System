@@ -87,41 +87,40 @@ class WeChatService:
             try:
                 enrollment = Enrollment.objects.get(student=student, course=event.course)
             except Enrollment.DoesNotExist:
-                return {'success': False, 'message': '您未选修该课程'}
-            
-            # 检查是否已签到
-            if Attendance.objects.filter(enrollment=enrollment, event=event).exists():
-                return {'success': True, 'message': '您已经签到成功，无需重复签到'}
+                return {'success': False, 'message': '您未选修该课程', 'status': 'fail'}
             
             # 检查是否在签到时间范围内
-            current_time = timezone.now().time()
-            if current_time < event.scan_start_time or current_time > event.scan_end_time:
-                return {'success': False, 'message': '不在签到时间范围内'}
+            now = timezone.now()
+            if now < event.scan_start_time or now > event.scan_end_time:
+                return {'success': False, 'message': '不在签到时间范围内', 'status': 'fail'}
             
-            # 写入考勤记录
-            Attendance.objects.create(
+            # 检查考勤记录
+            attendance = Attendance.objects.filter(enrollment=enrollment, event=event).first()
+            if attendance:
+                return {'success': False, 'message': '您已经签到过了', 'status': 'fail'}
+            
+            # 创建考勤记录
+            attendance = Attendance.objects.create(
                 enrollment=enrollment,
                 event=event,
-                scan_time=timezone.now(),
-                status=1  # 1-出勤
+                status='present',
+                scan_time=now
             )
-            # 推送签到成功模板消息
-            self.send_template_message(
-                openid,
-                {
-                    'first': {'value': '签到成功！'},
-                    'keyword1': {'value': event.course.course_name},
-                    'keyword2': {'value': str(event.event_date)},
-                    'keyword3': {'value': str(timezone.now())[:19]},
-                    'remark': {'value': '如有疑问请联系老师'}
+            
+            return {
+                'success': True,
+                'message': '签到成功',
+                'status': 'success',
+                'data': {
+                    'course_name': event.course.name,
+                    'student_name': student.name,
+                    'scan_time': now.strftime('%Y-%m-%d %H:%M:%S')
                 }
-            )
-            return {'success': True, 'message': '签到成功'}
-        
+            }
+            
         except AttendanceEvent.DoesNotExist:
-            return {'success': False, 'message': '考勤事件不存在'}
+            return {'success': False, 'message': '无效的考勤码', 'status': 'fail'}
         except Student.DoesNotExist:
-            return {'success': False, 'message': '学生信息不存在'}
+            return {'success': False, 'message': '学生信息不存在或openid不匹配', 'status': 'fail'}
         except Exception as e:
-            print('扫码异常:', e)
-            return {'success': False, 'message': str(e)} 
+            return {'success': False, 'message': f'系统错误: {str(e)}', 'status': 'fail'} 
