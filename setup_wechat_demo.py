@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 微信扫码考勤系统一键配置脚本
 自动配置微信参数和内网穿透地址，并初始化测试数据
@@ -18,12 +16,11 @@ def print_banner():
     print("=" * 60)
     print("本脚本将帮助您配置微信公众号参数和内网穿透地址")
     print("配置完成后将自动初始化测试数据")
-    print("-" * 60)
 
 def get_user_input():
     """获取用户输入的配置信息"""
     print("\n请输入以下配置信息：")
-    print("(提示：可以从微信公众平台测试号管理页面获取)")
+    print("(可以从微信公众平台测试号管理页面获取)")
     print()
     
     # 获取微信配置
@@ -53,7 +50,7 @@ def get_user_input():
     
     # 获取用户的微信openid
     print("\n请输入您的微信 OpenID：")
-    print("(提示：可以通过微信公众平台测试号的用户列表获取)")
+    print("(通过微信公众平台测试号的用户列表获取)")
     openid = input("您的微信 OpenID: ").strip()
     if not openid:
         print("错误：OpenID 不能为空")
@@ -145,12 +142,10 @@ def update_init_test_data(config):
     with open(init_file, 'w', encoding='utf-8') as f:
         f.write(content)
     
-    print("✓ 测试数据文件更新完成")
+    print("✓ 测试数据文件更新完成" + "\n")
 
 def run_init_test_data():
     """运行测试数据初始化"""
-    print("\n正在初始化测试数据...")
-    print("-" * 40)
     
     try:
         # 运行初始化脚本
@@ -158,14 +153,13 @@ def run_init_test_data():
                               capture_output=False, text=True)
         
         if result.returncode == 0:
-            print("-" * 40)
-            print("✓ 测试数据初始化完成")
+            print("\n" + "✓ 测试数据初始化完成")
         else:
-            print("✗ 测试数据初始化失败")
+            print("\n" + "✗ 测试数据初始化失败")
             sys.exit(1)
             
     except Exception as e:
-        print(f"✗ 运行初始化脚本时出错: {e}")
+        print(f"\n" + "✗ 运行初始化脚本时出错: {e}")
         sys.exit(1)
 
 
@@ -183,7 +177,6 @@ def main():
         config = get_user_input()
         
         # 确认配置
-        print("\n" + "-" * 40)
         print("请确认以下配置信息：")
         print(f"  微信 AppID: {config['appid']}")
         print(f"  微信 AppSecret: {config['secret']}")

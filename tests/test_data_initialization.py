@@ -178,7 +178,7 @@ def create_users_and_roles(dept_bigdata, major_bigdata):
     if YOUR_WECHAT_OPENID != "请在这里填入您的真实微信openid":
         print(f"✓ 开心的微信openid已设置为: {YOUR_WECHAT_OPENID}")
     else:
-        print("⚠️  请在代码中设置您的真实微信openid")
+        print("Warning: 请在代码中设置您的真实微信openid")
     
     return teacher, students
 
@@ -426,7 +426,7 @@ def reset_database():
     # 删除用户账号（保留超级用户）
     User.objects.filter(is_superuser=False).delete()
     
-    print("✓ 数据库重置完成")
+    print("✓ 数据库重置完成" + "\n")
 
 
 def create_test_data():
@@ -455,7 +455,7 @@ def create_test_data():
         # 5. 清空请假申请
         clear_leave_requests()
         
-        print("\n" + "=" * 50)
+        print("=" * 50 + "\n")
         print("测试数据初始化完成!")
         print("\n登录账号（密码统一为1）:")
         print("  管理员: admin")
@@ -478,8 +478,8 @@ def create_test_data():
         print("  • 数据库课程：总考勤人次20，总考勤次数2，出勤率60%")
         print("  • 最优化方法：总考勤人次10，总考勤次数2，出勤率70%")
         print("  • 点击深蓝色'查看单次考勤'按钮查看每次课的详细统计")
-        print("  • 每次课的出勤情况都有独立的甜甜圈图表")
-        print("=" * 50)
+        print("  • 每次课的出勤情况都有独立图表可以查看")
+        print("=" * 50 + "\n")
         
     except Exception as e:
         print(f"\n初始化失败: {e}")

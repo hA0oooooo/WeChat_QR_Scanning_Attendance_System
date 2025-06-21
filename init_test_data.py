@@ -1,8 +1,6 @@
-#!/usr/bin/env python
 """
 测试数据初始化脚本 - 主入口
 用于初始化完整的测试数据，包括用户账号、教师、学生、课程、选课等信息
-
 这个文件现在作为主入口，调用tests文件夹中的模块化测试代码
 """
 
@@ -15,8 +13,6 @@ sys.path.insert(0, project_root)
 
 def main():
     """主函数 - 初始化测试数据"""
-    print("=== 微信扫码考勤系统 - 测试数据初始化 ===\n")
-    
     try:
         # 导入Django设置以获取配置信息
         os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'attendance_system.settings')
@@ -25,7 +21,6 @@ def main():
         from django.conf import settings
         
         # 导入并运行测试数据初始化
-        print("正在初始化测试数据...")
         from tests.test_data_initialization import create_test_data
         
         create_test_data()
@@ -43,8 +38,7 @@ def main():
         except:
             student_openid = '未找到'
         
-        print("\n" + "="*60)
-        print("\n系统初始化完成")
+        print("系统初始化完成")
         print("\n可用的登录账号:")
         print("   管理员: admin / 1")
         print("   教师:   12345 / 1") 
@@ -81,7 +75,6 @@ def main():
         print("   3. 生成二维码")
         print("   4. 微信扫码 → 自动签到")
         print("   5. 学生端查看考勤记录更新")
-        print("\n" + "="*60)
             
     except ImportError as e:
         print(f"Warning: 导入错误: {e}")

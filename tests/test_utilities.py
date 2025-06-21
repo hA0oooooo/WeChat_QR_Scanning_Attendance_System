@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 测试工具模块
 包含各种测试和验证功能，用于系统开发和调试
@@ -54,8 +53,7 @@ def test_time_conversion():
         # 创建临时课程时间安排进行测试
         assignment, created = TeachingAssignment.objects.get_or_create(
             course=course,
-            teacher=teacher,
-            defaults={'semester': '2024-2025-2'}
+            teacher=teacher
         )
         
         schedule = ClassSchedule.objects.create(

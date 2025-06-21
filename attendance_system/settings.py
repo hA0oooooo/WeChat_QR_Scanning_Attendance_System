@@ -39,7 +39,7 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
-    "django.contrib.staticfiles",
+    # "django.contrib.staticfiles", 
     "attendance",
 ]
 
@@ -119,13 +119,9 @@ USE_I18N = True
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
+# Static files (CSS, JavaScript, Images) - DISABLED
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATIC_URL = "static/"
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static'),
-]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
@@ -143,7 +139,7 @@ WECHAT_SECRET = '0f56e97d49c23e5f79b978a3bf71f0cb'
 WECHAT_TOKEN = 'mytesttoken'
 WECHAT_ENCODING_AES_KEY = ''  # 测试号不需要
 WECHAT_ATTENDANCE_TEMPLATE_ID = ''  # 测试号不需要
-WECHAT_NOTIFY_URL = 'https://1ka10063yf404.vicp.fun/wechat/notify/'
+WECHAT_NOTIFY_URL = 'https://1100qn909aa33.vicp.fun/wechat/notify/'
 
 # 缓存配置
 CACHES = {
@@ -160,5 +156,5 @@ def fake_now():
 timezone.now = fake_now
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://1ka10063yf404.vicp.fun",
+    "https://1100qn909aa33.vicp.fun",
 ]

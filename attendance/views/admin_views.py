@@ -1082,8 +1082,7 @@ def add_class_schedule(request):
             # 查找或创建教学安排
             assignment, created = TeachingAssignment.objects.get_or_create(
                 course=course,
-                teacher=teacher,
-                defaults={'semester': '2024-2025-2'}
+                teacher=teacher
             )
             # 创建课程时间安排
             schedule = ClassSchedule.objects.create(
@@ -1183,8 +1182,7 @@ def update_class_schedule(request):
             # 查找或创建教学安排
             assignment, created = TeachingAssignment.objects.get_or_create(
                 course=schedule.assignment.course,
-                teacher=teacher,
-                defaults={'semester': '2024-2025-2'}
+                teacher=teacher
             )
             # 更新课程时间安排
             schedule.assignment = assignment
