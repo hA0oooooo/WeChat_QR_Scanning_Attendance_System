@@ -57,18 +57,4 @@ WeChat_QR_Scanning_Attendance_System/
 ├── requirements.txt                    # 项目依赖
 └── README.md                           # 项目说明
 ```
-
-### 快速开始
-
-##### 本地体验
-```bash
-python init_test_data.py
-python manage.py runserver
-```
-
-##### 扫码功能体验
-```bash
-python setup_wechat_demo.py
-```
-
 详细说明请参考 [安装部署文档](Document/安装部署文档.pdf)。
