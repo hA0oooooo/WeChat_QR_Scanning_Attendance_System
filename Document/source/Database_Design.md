@@ -68,7 +68,7 @@
 ![ER图](ERgraph.png)
 * 真实模型较上述图片略有修改
 
-#### 3.2 经规范化的实体列表 (Entity List)
+##### 3.2 经规范化的实体列表 (Entity List)
 
 1.  **院系 (Department):** 院系ID (PK), 院系名
 2.  **专业 (Major):** 专业ID (PK), 专业名, 所属院系ID (FK)
